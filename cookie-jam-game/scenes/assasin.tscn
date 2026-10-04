@@ -20,6 +20,12 @@ radius = 47.010635
 [sub_resource type="CircleShape2D" id="CircleShape2D_b2qns"]
 radius = 74.00676
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_148uq"]
+bg_color = Color(0.32559684, 5.113892e-07, 6.016344e-08, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_llryn"]
+bg_color = Color(0.9388852, 0.00063573505, 0.0003488517, 1)
+
 [node name="assasin" type="CharacterBody2D" unique_id=59076921]
 collision_layer = 2
 collision_mask = 2
@@ -45,6 +51,22 @@ shape = SubResource("CircleShape2D_b2qns")
 [node name="hit_timer" type="Timer" parent="." unique_id=1857472569]
 one_shot = true
 
+[node name="knockback_timer" type="Timer" parent="." unique_id=2018098592]
+wait_time = 0.1
+one_shot = true
+
+[node name="ProgressBar" type="ProgressBar" parent="." unique_id=98536210]
+offset_left = -61.0
+offset_top = -119.0
+offset_right = 63.0
+offset_bottom = -105.0
+theme_override_styles/background = SubResource("StyleBoxFlat_148uq")
+theme_override_styles/fill = SubResource("StyleBoxFlat_llryn")
+show_percentage = false
+
+[connection signal="area_entered" from="Area2D" to="." method="_on_area_2d_area_entered"]
+[connection signal="area_exited" from="Area2D" to="." method="_on_area_2d_area_exited"]
 [connection signal="body_entered" from="Area2D" to="." method="_on_area_2d_body_entered"]
 [connection signal="body_exited" from="Area2D" to="." method="_on_area_2d_body_exited"]
 [connection signal="timeout" from="hit_timer" to="." method="_on_hit_timer_timeout"]
+[connection signal="timeout" from="knockback_timer" to="." method="_on_knockback_timer_timeout"]

@@ -20,8 +20,10 @@ animations = [{
 [node name="Sword" type="Marker2D" unique_id=1301284687]
 script = ExtResource("1_n355p")
 
-[node name="Area2D" type="Area2D" parent="." unique_id=319161116]
+[node name="Area2D" type="Area2D" parent="." unique_id=319161116 groups=["weapon"]]
 position = Vector2(0, -298)
+collision_layer = 7
+collision_mask = 7
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=409644976]
 position = Vector2(1, -3.5)

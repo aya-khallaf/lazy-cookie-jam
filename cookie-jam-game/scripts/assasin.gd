@@ -4,24 +4,34 @@ extends CharacterBody2D
 var touching_player := false
 var touching_king := false
 var can_attack := true
+var knockback := false
+var health := 100
+var max_health := 100
 
 func _ready() -> void:
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 
 func _physics_process(delta: float) -> void:
-	var target = _get_closest_target()
-	
-	if touching_king and can_attack:
-		Global.king_health -= 20
-		can_attack = false
-		$hit_timer.start()
-	if touching_player and can_attack:
-		Global.player_health -= 20
-		can_attack = false
-		$hit_timer.start()
+	if health <= 0:
+		queue_free()
+	$ProgressBar.value = health
+	$ProgressBar.max_value = max_health
+	if knockback:
+		velocity = -(global_position.direction_to(Global.player_node.global_position) * speed)
+	else:
+		var target = _get_closest_target()
 		
-	if is_instance_valid(target):
-		velocity = global_position.direction_to(target.global_position) * speed
+		if touching_king and can_attack:
+			Global.king_health -= 20
+			can_attack = false
+			$hit_timer.start()
+		if touching_player and can_attack:
+			Global.player_health -= 20
+			can_attack = false
+			$hit_timer.start()
+			
+		if is_instance_valid(target):
+			velocity = global_position.direction_to(target.global_position) * speed
 
 	move_and_slide()
 
@@ -52,3 +62,14 @@ func _on_area_2d_body_exited(body: Node2D) -> void:
 
 func _on_hit_timer_timeout() -> void:
 	can_attack = true
+
+
+func _on_area_2d_area_entered(area: Area2D) -> void:
+	if area.is_in_group("weapon"):
+		$knockback_timer.start()
+		knockback = true
+		health -= 20
+
+
+func _on_knockback_timer_timeout() -> void:
+	knockback = false
