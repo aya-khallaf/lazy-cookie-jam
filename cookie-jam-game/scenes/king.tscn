@@ -84,6 +84,12 @@ radius = 43.046486
 [sub_resource type="CircleShape2D" id="CircleShape2D_6iuwv"]
 radius = 63.28507
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jlx0y"]
+bg_color = Color(0.18307453, 0.00033713185, 0.30978307, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7t663"]
+bg_color = Color(0.7195479, 0.4348933, 1, 1)
+
 [node name="king" type="CharacterBody2D" unique_id=1099200405]
 collision_layer = 2
 collision_mask = 2
@@ -92,7 +98,7 @@ script = ExtResource("1_gs1rm")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=711398964]
 sprite_frames = SubResource("SpriteFrames_h63cl")
 animation = &"sleep walk"
-frame_progress = 0.92529714
+frame_progress = 0.13338137
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1097889617]
 position = Vector2(1, 93)
@@ -108,6 +114,15 @@ shape = SubResource("CircleShape2D_6iuwv")
 
 [node name="sleep_timer" type="Timer" parent="." unique_id=1081824566]
 wait_time = 3.0
+
+[node name="ProgressBar" type="ProgressBar" parent="." unique_id=2033465190]
+offset_left = -61.0
+offset_top = -93.0
+offset_right = 63.0
+offset_bottom = -79.0
+theme_override_styles/background = SubResource("StyleBoxFlat_jlx0y")
+theme_override_styles/fill = SubResource("StyleBoxFlat_7t663")
+show_percentage = false
 
 [connection signal="body_entered" from="Area2D" to="." method="_on_area_2d_body_entered"]
 [connection signal="body_exited" from="Area2D" to="." method="_on_area_2d_body_exited"]

@@ -12,6 +12,7 @@
 [ext_resource type="Texture2D" uid="uid://1fomer578xgq" path="res://assets/bodyguard walk2.svg" id="10_jej6c"]
 [ext_resource type="Texture2D" uid="uid://b1r12x2mtdp8w" path="res://assets/bodyguard walk3.svg" id="11_f1ej7"]
 [ext_resource type="Texture2D" uid="uid://jj11hjk1v3ef" path="res://assets/bodyguard walk4.svg" id="12_oprun"]
+[ext_resource type="PackedScene" uid="uid://bttmxngyfu4gs" path="res://scenes/sword.tscn" id="13_jej6c"]
 
 [sub_resource type="GDScript" id="GDScript_onrkg"]
 script/source = "extends CharacterBody2D
@@ -37,6 +38,8 @@ func get_input():
 	return input
 
 func _physics_process(delta):
+	$ProgressBar.max_value = Global.player_max_health
+	$ProgressBar.value = Global.player_health
 	var direction = get_input()
 	if direction.length() > 0:
 		animated_sprite_2d.play(\"walk\")
@@ -111,6 +114,12 @@ animations = [{
 [sub_resource type="CircleShape2D" id="CircleShape2D_3vyb7"]
 radius = 47.26521
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3v2ag"]
+bg_color = Color(0.18307453, 0.00033713185, 0.30978307, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jej6c"]
+bg_color = Color(0.7195479, 0.4348933, 1, 1)
+
 [node name="Player" type="CharacterBody2D" unique_id=1279900028]
 collision_layer = 2
 script = SubResource("GDScript_onrkg")
@@ -124,3 +133,15 @@ frame = 10
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1223574870]
 position = Vector2(-4, 78)
 shape = SubResource("CircleShape2D_3vyb7")
+
+[node name="ProgressBar" type="ProgressBar" parent="." unique_id=1807616458]
+offset_left = -59.0
+offset_top = -278.0
+offset_right = 65.0
+offset_bottom = -264.0
+theme_override_styles/background = SubResource("StyleBoxFlat_3v2ag")
+theme_override_styles/fill = SubResource("StyleBoxFlat_jej6c")
+show_percentage = false
+
+[node name="Sword" parent="." unique_id=1775572695 instance=ExtResource("13_jej6c")]
+position = Vector2(2, -7)

@@ -14,11 +14,14 @@ var action_timer := 0.0
 
 
 func _ready() -> void:
+	Global.king_node = self
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	_choose_distracted_action()
 
 
 func _physics_process(delta: float) -> void:
+	$ProgressBar.max_value = Global.king_max_health
+	$ProgressBar.value = Global.king_health
 	if !distracted:
 		
 		sleeping = false
