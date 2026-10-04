@@ -1,0 +1,50 @@
+[gd_scene format=3 uid="uid://dw15ig8y03f6"]
+
+[ext_resource type="Script" uid="uid://bmq8tvibr17ym" path="res://scripts/assasin.gd" id="1_b2qns"]
+[ext_resource type="Texture2D" uid="uid://yxh0i7qi50dv" path="res://assets/goblin .svg" id="2_b2qns"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_b2qns"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_b2qns")
+}],
+"loop": true,
+"name": &"goblin assasin",
+"speed": 5.0
+}]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_sx1bq"]
+radius = 47.010635
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_b2qns"]
+radius = 74.00676
+
+[node name="assasin" type="CharacterBody2D" unique_id=59076921]
+collision_layer = 2
+collision_mask = 2
+script = ExtResource("1_b2qns")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1039831818]
+sprite_frames = SubResource("SpriteFrames_b2qns")
+animation = &"goblin assasin"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1372308340]
+position = Vector2(0, 53)
+shape = SubResource("CircleShape2D_sx1bq")
+
+[node name="Area2D" type="Area2D" parent="." unique_id=907482289]
+position = Vector2(0, -13)
+collision_layer = 3
+collision_mask = 3
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=56958685]
+position = Vector2(1, 66)
+shape = SubResource("CircleShape2D_b2qns")
+
+[node name="hit_timer" type="Timer" parent="." unique_id=1857472569]
+one_shot = true
+
+[connection signal="body_entered" from="Area2D" to="." method="_on_area_2d_body_entered"]
+[connection signal="body_exited" from="Area2D" to="." method="_on_area_2d_body_exited"]
+[connection signal="timeout" from="hit_timer" to="." method="_on_hit_timer_timeout"]
