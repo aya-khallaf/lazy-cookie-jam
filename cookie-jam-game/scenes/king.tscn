@@ -1,0 +1,114 @@
+[gd_scene format=3 uid="uid://bq6y1mon1g7fk"]
+
+[ext_resource type="Script" uid="uid://c4few3ti3sdiy" path="res://scripts/king.gd" id="1_gs1rm"]
+[ext_resource type="Texture2D" uid="uid://ut0mbn0b3pxq" path="res://assets/awake sleepy king.svg" id="2_6iuwv"]
+[ext_resource type="Texture2D" uid="uid://t8fm7paqnv7n" path="res://assets/sleepy king.svg" id="2_fn2xo"]
+[ext_resource type="Texture2D" uid="uid://bf8cqhypwfgor" path="res://assets/awake sleepy king2.svg" id="3_jlx0y"]
+[ext_resource type="Texture2D" uid="uid://chssym47kb3y4" path="res://assets/awake sleepy king3.svg" id="4_7t663"]
+[ext_resource type="Texture2D" uid="uid://bwufimaf4xd44" path="res://assets/sleepy king3.svg" id="4_6440l"]
+[ext_resource type="Texture2D" uid="uid://bga0t58ixb6ho" path="res://assets/sleepy king4.svg" id="5_cojbw"]
+[ext_resource type="Texture2D" uid="uid://b10fl7mhwachn" path="res://assets/sleepy king5.svg" id="6_7lhro"]
+[ext_resource type="Texture2D" uid="uid://d0ipke7w1157x" path="res://assets/sleepy king6.svg" id="7_7qhre"]
+[ext_resource type="Texture2D" uid="uid://dqnw827qirpml" path="res://assets/sleepy king walk.svg" id="10_m3w7n"]
+[ext_resource type="Texture2D" uid="uid://cxpdqhtgst1rc" path="res://assets/sleepy king walk2.svg" id="11_r5w67"]
+[ext_resource type="Texture2D" uid="uid://cl2r6fd2gobxf" path="res://assets/sleepy king walk3.svg" id="12_ovqfi"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_h63cl"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_6iuwv")
+}],
+"loop": true,
+"name": &"awake idle",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_6iuwv")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_jlx0y")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_6iuwv")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_7t663")
+}],
+"loop": true,
+"name": &"awake walk",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_fn2xo")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_6440l")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_cojbw")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_7lhro")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_7qhre")
+}],
+"loop": true,
+"name": &"sleep idle",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("10_m3w7n")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_r5w67")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_m3w7n")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12_ovqfi")
+}],
+"loop": true,
+"name": &"sleep walk",
+"speed": 3.0
+}]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_gmgs4"]
+radius = 43.046486
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_6iuwv"]
+radius = 63.28507
+
+[node name="king" type="CharacterBody2D" unique_id=1099200405]
+collision_layer = 2
+collision_mask = 2
+script = ExtResource("1_gs1rm")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=711398964]
+sprite_frames = SubResource("SpriteFrames_h63cl")
+animation = &"sleep walk"
+frame_progress = 0.92529714
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1097889617]
+position = Vector2(1, 93)
+shape = SubResource("CircleShape2D_gmgs4")
+
+[node name="Area2D" type="Area2D" parent="." unique_id=257771014]
+collision_layer = 3
+collision_mask = 3
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=1964591827]
+position = Vector2(0, 94)
+shape = SubResource("CircleShape2D_6iuwv")
+
+[node name="sleep_timer" type="Timer" parent="." unique_id=1081824566]
+wait_time = 3.0
+
+[connection signal="body_entered" from="Area2D" to="." method="_on_area_2d_body_entered"]
+[connection signal="body_exited" from="Area2D" to="." method="_on_area_2d_body_exited"]
+[connection signal="timeout" from="sleep_timer" to="." method="_on_sleep_timer_timeout"]
