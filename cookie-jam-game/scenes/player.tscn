@@ -1,0 +1,126 @@
+[gd_scene format=3 uid="uid://drmbjwohlu3cf"]
+
+[ext_resource type="Texture2D" uid="uid://bfefmaiwwbps4" path="res://assets/bodyguard idle.svg" id="1_smehm"]
+[ext_resource type="Texture2D" uid="uid://drinswangoxbo" path="res://assets/bodyguard idle4.svg" id="2_ur7pv"]
+[ext_resource type="Texture2D" uid="uid://xpd6mb8s8ukj" path="res://assets/bodyguard idle5.svg" id="3_y4r1p"]
+[ext_resource type="Texture2D" uid="uid://biqb8lhochtk5" path="res://assets/bodyguard idle6.svg" id="4_d2wvv"]
+[ext_resource type="Texture2D" uid="uid://dho5gmfbtg6l7" path="res://assets/bodyguard idle7.svg" id="5_3v2ag"]
+[ext_resource type="Texture2D" uid="uid://cru3ii4k23tga" path="res://assets/bodyguard idle8.svg" id="6_jej6c"]
+[ext_resource type="Texture2D" uid="uid://dwamqdqbbeg4l" path="res://assets/bodyguard idle2.svg" id="7_f1ej7"]
+[ext_resource type="Texture2D" uid="uid://db0hi0cicxr4w" path="res://assets/bodyguard idle3.svg" id="8_oprun"]
+[ext_resource type="Texture2D" uid="uid://cs04ujb1f3ew1" path="res://assets/bodyguard walk.svg" id="9_3v2ag"]
+[ext_resource type="Texture2D" uid="uid://1fomer578xgq" path="res://assets/bodyguard walk2.svg" id="10_jej6c"]
+[ext_resource type="Texture2D" uid="uid://b1r12x2mtdp8w" path="res://assets/bodyguard walk3.svg" id="11_f1ej7"]
+[ext_resource type="Texture2D" uid="uid://jj11hjk1v3ef" path="res://assets/bodyguard walk4.svg" id="12_oprun"]
+
+[sub_resource type="GDScript" id="GDScript_onrkg"]
+script/source = "extends CharacterBody2D
+
+@export var speed = 500
+@export var friction = 0.1
+@export var acceleration = 0.1
+@onready var animated_sprite_2d: AnimatedSprite2D = $AnimatedSprite2D
+func _ready() -> void:
+	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
+	Global.player_node = self
+
+func get_input():
+	var input = Vector2()
+	if Input.is_action_pressed('right'):
+		input.x += 1
+	if Input.is_action_pressed('left'):
+		input.x -= 1
+	if Input.is_action_pressed('down'):
+		input.y += 1
+	if Input.is_action_pressed('up'):
+		input.y -= 1
+	return input
+
+func _physics_process(delta):
+	var direction = get_input()
+	if direction.length() > 0:
+		animated_sprite_2d.play(\"walk\")
+		velocity = velocity.lerp(direction.normalized() * speed, acceleration)
+	else:
+		animated_sprite_2d.play(\"idle\")
+		velocity = velocity.lerp(Vector2.ZERO, friction)
+	move_and_slide()
+"
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_i3pqv"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_smehm")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_ur7pv")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_y4r1p")
+}, {
+"duration": 1.0,
+"texture": ExtResource("1_smehm")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_f1ej7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_oprun")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_d2wvv")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_3v2ag")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_jej6c")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_oprun")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_f1ej7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_oprun")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 2.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("9_3v2ag")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_jej6c")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_f1ej7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12_oprun")
+}],
+"loop": true,
+"name": &"walk",
+"speed": 5.0
+}]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_3vyb7"]
+radius = 47.26521
+
+[node name="Player" type="CharacterBody2D" unique_id=1279900028]
+collision_layer = 2
+script = SubResource("GDScript_onrkg")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=318040889]
+position = Vector2(2, -69)
+sprite_frames = SubResource("SpriteFrames_i3pqv")
+animation = &"idle"
+frame = 10
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1223574870]
+position = Vector2(-4, 78)
+shape = SubResource("CircleShape2D_3vyb7")
