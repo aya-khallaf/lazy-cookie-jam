@@ -1,0 +1,67 @@
+[gd_scene format=3 uid="uid://dsy4esxseo3nj"]
+
+[ext_resource type="Script" uid="uid://cmcetqdk1i0sh" path="res://scenes/character_body_2d.gd" id="1_g2brh"]
+[ext_resource type="Texture2D" uid="uid://dc63bxcii2k8w" path="res://icon.svg" id="1_lj8jo"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_ttjhl"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_lj8jo")
+}],
+"loop": 1,
+"name": &"default",
+"speed": 5.0
+}]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_xan2h"]
+radius = 62.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_t1h08"]
+radius = 176.0
+
+[node name="CharacterBody2D" type="CharacterBody2D" unique_id=80194360]
+script = ExtResource("1_g2brh")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1140738845]
+sprite_frames = SubResource("SpriteFrames_ttjhl")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1643756994]
+shape = SubResource("CircleShape2D_xan2h")
+
+[node name="Area2D" type="Area2D" parent="." unique_id=1690517572]
+collision_layer = 7
+collision_mask = 7
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=613387534]
+position = Vector2(-2, -4)
+shape = SubResource("CircleShape2D_t1h08")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=2064974815]
+offset_left = -125.0
+offset_top = -220.0
+offset_right = 138.0
+offset_bottom = -104.0
+
+[node name="MarginContainer" type="MarginContainer" parent="ColorRect" unique_id=1449143485]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="RichTextLabel" type="RichTextLabel" parent="ColorRect/MarginContainer" unique_id=924264591]
+layout_mode = 2
+theme_override_colors/default_color = Color(0, 0, 0, 1)
+text = "Press E to interact
+"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[connection signal="body_entered" from="Area2D" to="." method="_on_area_2d_body_entered"]
+[connection signal="body_exited" from="Area2D" to="." method="_on_area_2d_body_exited"]
