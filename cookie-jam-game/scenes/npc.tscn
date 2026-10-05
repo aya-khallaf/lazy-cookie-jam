@@ -18,7 +18,7 @@ animations = [{
 radius = 62.0
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_t1h08"]
-radius = 176.0
+radius = 133.00375
 
 [node name="CharacterBody2D" type="CharacterBody2D" unique_id=80194360]
 script = ExtResource("1_g2brh")
@@ -34,7 +34,7 @@ collision_layer = 7
 collision_mask = 7
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=613387534]
-position = Vector2(-2, -4)
+position = Vector2(1, -2)
 shape = SubResource("CircleShape2D_t1h08")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=2064974815]
