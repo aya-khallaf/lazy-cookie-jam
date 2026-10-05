@@ -94,6 +94,9 @@ bg_color = Color(0.7195479, 0.4348933, 1, 1)
 collision_layer = 2
 collision_mask = 2
 script = ExtResource("1_gs1rm")
+speed = 200.0
+wander_speed = 150.0
+wander_distance = 500.0
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=711398964]
 sprite_frames = SubResource("SpriteFrames_h63cl")

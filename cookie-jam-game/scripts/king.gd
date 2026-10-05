@@ -78,7 +78,7 @@ func _choose_distracted_action() -> void:
 func _sleep() -> void:
 	sleeping = true
 	velocity = Vector2.ZERO
-	action_timer = randf_range(2.0, 6.0)
+	action_timer = randf_range(1.0, 2.0)
 
 
 func _wander() -> void:
@@ -95,7 +95,7 @@ func _wander() -> void:
 func _on_area_2d_body_entered(body: Node2D) -> void:
 	if body == Global.player_node:
 		distracted=false
-		$sleep_timer.wait_time=randf_range(3.,15.)
+		$sleep_timer.wait_time=randf_range(3.,7.)
 		$sleep_timer.start()
 
 

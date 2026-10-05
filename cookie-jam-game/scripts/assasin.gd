@@ -13,6 +13,10 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	if health <= 0:
+		if Global.king_health<Global.king_max_health:
+			Global.king_health+=1
+		if Global.player_health<Global.player_max_health:
+			Global.player_health+=1
 		queue_free()
 	$ProgressBar.value = health
 	$ProgressBar.max_value = max_health
