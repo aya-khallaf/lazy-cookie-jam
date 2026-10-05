@@ -17,37 +17,696 @@
 [sub_resource type="GDScript" id="GDScript_onrkg"]
 script/source = "extends CharacterBody2D
 
+const HEART_SCRIPT = preload(\"res://scripts/heart.gd\")
+
 @export var speed = 500
 @export var friction = 0.1
 @export var acceleration = 0.1
+
+@export var king_camera_distance = 500.0
+
+@export var king_camera_render_size = Vector2(640, 360)
+@export var king_camera_size = Vector2(320, 180)
+
+@export var king_camera_margin = Vector2(20, 20)
+
+@export var camera_heart_spawn_interval = 12.0
+@export var max_camera_hearts = 2
+
 @onready var animated_sprite_2d: AnimatedSprite2D = $AnimatedSprite2D
+
+var king_viewport
+var king_camera
+var king_camera_frame
+var king_camera_display
+
+var heart_spawn_timer
+
+var xp_hud
+var xp_bar
+var level_label
+var upgrade_label
+
+var upgrade_layer
+var upgrade_menu
+var upgrade_title
+
+var upgrade_buttons = []
+var current_upgrade_choices = []
+
+var last_seen_level = 1
+var upgrade_message_timer = 0.0
+
+
 func _ready() -> void:
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
+
 	Global.player_node = self
+
+	last_seen_level = Global.level
+
+	_create_king_camera()
+	_create_xp_hud()
+	_create_upgrade_menu()
+	_create_heart_timer()
+
+	if !Global.level_up_requested.is_connected(
+		_on_level_up_requested
+	):
+		Global.level_up_requested.connect(
+			_on_level_up_requested
+		)
+
+	get_viewport().size_changed.connect(
+		_position_king_camera
+	)
+
 
 func get_input():
 	var input = Vector2()
-	if Input.is_action_pressed('right'):
+
+	if Input.is_action_pressed(\"right\"):
 		input.x += 1
-	if Input.is_action_pressed('left'):
+
+	if Input.is_action_pressed(\"left\"):
 		input.x -= 1
-	if Input.is_action_pressed('down'):
+
+	if Input.is_action_pressed(\"down\"):
 		input.y += 1
-	if Input.is_action_pressed('up'):
+
+	if Input.is_action_pressed(\"up\"):
 		input.y -= 1
+
 	return input
+
+
+func _process(delta: float) -> void:
+	_update_xp_hud(delta)
+
 
 func _physics_process(delta):
 	$ProgressBar.max_value = Global.player_max_health
 	$ProgressBar.value = Global.player_health
+
+	_update_king_camera()
+
 	var direction = get_input()
+
+	var current_speed = (
+		speed *
+		Global.player_speed_multiplier
+	)
+
 	if direction.length() > 0:
 		animated_sprite_2d.play(\"walk\")
-		velocity = velocity.lerp(direction.normalized() * speed, acceleration)
+
+		velocity = velocity.lerp(
+			direction.normalized() * current_speed,
+			acceleration
+		)
+
 	else:
 		animated_sprite_2d.play(\"idle\")
-		velocity = velocity.lerp(Vector2.ZERO, friction)
+
+		velocity = velocity.lerp(
+			Vector2.ZERO,
+			friction
+		)
+
 	move_and_slide()
+
+
+func _create_heart_timer() -> void:
+	heart_spawn_timer = Timer.new()
+
+	heart_spawn_timer.wait_time = (
+		camera_heart_spawn_interval
+	)
+
+	heart_spawn_timer.autostart = true
+
+	heart_spawn_timer.timeout.connect(
+		_spawn_camera_heart
+	)
+
+	add_child(heart_spawn_timer)
+
+
+func _spawn_camera_heart() -> void:
+	if !is_instance_valid(Global.king_node):
+		return
+
+	if Global.king_health >= Global.king_max_health:
+		return
+
+	var current_hearts = (
+		get_tree().get_nodes_in_group(
+			\"heart_pickup\"
+		)
+	)
+
+	if current_hearts.size() >= max_camera_hearts:
+		return
+
+	var away_direction = (
+		Global.king_node.global_position.direction_to(
+			global_position
+		)
+	)
+
+	if away_direction.length() < 0.01:
+		away_direction = Vector2.RIGHT.rotated(
+			randf() * TAU
+		)
+
+	away_direction = away_direction.normalized()
+
+	var current_camera = (
+		get_viewport().get_camera_2d()
+	)
+
+	var camera_zoom = Vector2.ONE
+
+	if is_instance_valid(current_camera):
+		camera_zoom = current_camera.zoom
+
+	var viewport_size = (
+		get_viewport_rect().size
+	)
+
+	var half_view = Vector2(
+		viewport_size.x /
+		(2.0 * max(camera_zoom.x, 0.01)),
+
+		viewport_size.y /
+		(2.0 * max(camera_zoom.y, 0.01))
+	)
+
+	var x_edge_distance = 1000000.0
+	var y_edge_distance = 1000000.0
+
+	if abs(away_direction.x) > 0.001:
+		x_edge_distance = (
+			half_view.x /
+			abs(away_direction.x)
+		)
+
+	if abs(away_direction.y) > 0.001:
+		y_edge_distance = (
+			half_view.y /
+			abs(away_direction.y)
+		)
+
+	var edge_distance = min(
+		x_edge_distance,
+		y_edge_distance
+	)
+
+	var spawn_distance = (
+		edge_distance *
+		0.65
+	)
+
+	var perpendicular = Vector2(
+		-away_direction.y,
+		away_direction.x
+	)
+
+	var spawn_position = (
+		global_position +
+		away_direction * spawn_distance +
+		perpendicular *
+		randf_range(-35.0, 35.0)
+	)
+
+	var heart = HEART_SCRIPT.new()
+
+	get_parent().add_child(heart)
+
+	heart.global_position = spawn_position
+
+
+func _create_xp_hud() -> void:
+	var canvas_layer = CanvasLayer.new()
+
+	canvas_layer.layer = 90
+
+	add_child(canvas_layer)
+
+
+	xp_hud = Control.new()
+
+	canvas_layer.add_child(xp_hud)
+
+	xp_hud.add_to_group(\"xp_hud\")
+
+	xp_hud.mouse_filter = (
+		Control.MOUSE_FILTER_IGNORE
+	)
+
+	xp_hud.position = Vector2.ZERO
+
+	xp_hud.size = (
+		get_viewport_rect().size
+	)
+
+
+	xp_bar = ProgressBar.new()
+
+	xp_hud.add_child(xp_bar)
+
+	xp_bar.position = Vector2(
+		get_viewport_rect().size.x / 2.0 - 200.0,
+		get_viewport_rect().size.y - 45.0
+	)
+
+	xp_bar.size = Vector2(
+		400.0,
+		25.0
+	)
+
+	xp_bar.min_value = 0.0
+	xp_bar.max_value = Global.xp_to_next_level
+	xp_bar.value = Global.xp
+
+	xp_bar.show_percentage = false
+
+	xp_bar.mouse_filter = (
+		Control.MOUSE_FILTER_IGNORE
+	)
+
+
+	level_label = Label.new()
+
+	xp_hud.add_child(level_label)
+
+	level_label.position = Vector2(
+		get_viewport_rect().size.x / 2.0 - 250.0,
+		get_viewport_rect().size.y - 80.0
+	)
+
+	level_label.size = Vector2(
+		500.0,
+		30.0
+	)
+
+	level_label.horizontal_alignment = (
+		HORIZONTAL_ALIGNMENT_CENTER
+	)
+
+	level_label.vertical_alignment = (
+		VERTICAL_ALIGNMENT_CENTER
+	)
+
+	level_label.add_theme_font_size_override(
+		\"font_size\",
+		20
+	)
+
+
+	upgrade_label = Label.new()
+
+	xp_hud.add_child(upgrade_label)
+
+	upgrade_label.position = Vector2(
+		get_viewport_rect().size.x / 2.0 - 350.0,
+		50.0
+	)
+
+	upgrade_label.size = Vector2(
+		700.0,
+		80.0
+	)
+
+	upgrade_label.horizontal_alignment = (
+		HORIZONTAL_ALIGNMENT_CENTER
+	)
+
+	upgrade_label.vertical_alignment = (
+		VERTICAL_ALIGNMENT_CENTER
+	)
+
+	upgrade_label.add_theme_font_size_override(
+		\"font_size\",
+		26
+	)
+
+	upgrade_label.visible = false
+
+	xp_hud.visible = !get_tree().paused
+
+
+func _update_xp_hud(delta: float) -> void:
+	if !is_instance_valid(xp_bar):
+		return
+
+	xp_bar.max_value = max(
+		Global.xp_to_next_level,
+		1.0
+	)
+
+	xp_bar.value = Global.xp
+
+	level_label.text = (
+		\"LEVEL %d    XP %d / %d\" %
+		[
+			Global.level,
+			int(Global.xp),
+			int(Global.xp_to_next_level)
+		]
+	)
+
+	if Global.level != last_seen_level:
+		last_seen_level = Global.level
+
+		upgrade_label.text = (
+			\"LEVEL %d\\n%s\" %
+			[
+				Global.level,
+				Global.last_upgrade_text
+			]
+		)
+
+		upgrade_message_timer = 2.0
+
+	if upgrade_message_timer > 0.0:
+		upgrade_message_timer -= delta
+
+
+func _create_upgrade_menu() -> void:
+	upgrade_layer = CanvasLayer.new()
+
+	upgrade_layer.layer = 200
+
+	upgrade_layer.process_mode = (
+		Node.PROCESS_MODE_ALWAYS
+	)
+
+	add_child(upgrade_layer)
+
+
+	upgrade_menu = ColorRect.new()
+
+	upgrade_menu.color = Color(
+		0.0,
+		0.0,
+		0.0,
+		0.75
+	)
+
+	upgrade_menu.process_mode = (
+		Node.PROCESS_MODE_ALWAYS
+	)
+
+	upgrade_layer.add_child(upgrade_menu)
+
+	upgrade_menu.set_anchors_and_offsets_preset(
+		Control.PRESET_FULL_RECT
+	)
+
+
+	var box = VBoxContainer.new()
+
+	box.process_mode = (
+		Node.PROCESS_MODE_ALWAYS
+	)
+
+	upgrade_menu.add_child(box)
+
+	box.set_anchors_preset(
+		Control.PRESET_CENTER
+	)
+
+	box.offset_left = -325.0
+	box.offset_right = 325.0
+
+	box.offset_top = -230.0
+	box.offset_bottom = 230.0
+
+	box.add_theme_constant_override(
+		\"separation\",
+		15
+	)
+
+
+	upgrade_title = Label.new()
+
+	upgrade_title.text = \"LEVEL UP\"
+
+	upgrade_title.horizontal_alignment = (
+		HORIZONTAL_ALIGNMENT_CENTER
+	)
+
+	upgrade_title.add_theme_font_size_override(
+		\"font_size\",
+		36
+	)
+
+	box.add_child(upgrade_title)
+
+
+	var subtitle = Label.new()
+
+	subtitle.text = \"Choose an upgrade\"
+
+	subtitle.horizontal_alignment = (
+		HORIZONTAL_ALIGNMENT_CENTER
+	)
+
+	subtitle.add_theme_font_size_override(
+		\"font_size\",
+		18
+	)
+
+	box.add_child(subtitle)
+
+
+	for i in range(3):
+		var button = Button.new()
+
+		button.custom_minimum_size = Vector2(
+			650.0,
+			100.0
+		)
+
+		button.add_theme_font_size_override(
+			\"font_size\",
+			20
+		)
+
+		button.process_mode = (
+			Node.PROCESS_MODE_ALWAYS
+		)
+
+		button.pressed.connect(
+			_on_upgrade_button_pressed.bind(i)
+		)
+
+		box.add_child(button)
+
+		upgrade_buttons.append(button)
+
+
+	upgrade_menu.visible = false
+
+
+func _on_level_up_requested() -> void:
+	if !is_instance_valid(upgrade_menu):
+		return
+
+	if upgrade_menu.visible:
+		return
+
+	_show_upgrade_choices()
+
+
+func _show_upgrade_choices() -> void:
+	if Global.pending_level_ups <= 0:
+		return
+
+	current_upgrade_choices = (
+		Global.get_upgrade_choices()
+	)
+
+	for i in range(3):
+		upgrade_buttons[i].text = (
+			Global.get_upgrade_text(
+				current_upgrade_choices[i]
+			)
+		)
+
+	upgrade_title.text = (
+		\"LEVEL %d\" %
+		Global.level
+	)
+
+	upgrade_menu.visible = true
+
+	get_tree().paused = true
+
+
+func _on_upgrade_button_pressed(
+	index: int
+) -> void:
+
+	if index < 0:
+		return
+
+	if index >= current_upgrade_choices.size():
+		return
+
+	var upgrade_id = (
+		current_upgrade_choices[index]
+	)
+
+	Global.apply_upgrade(
+		upgrade_id
+	)
+
+	Global.pending_level_ups -= 1
+
+	if Global.pending_level_ups > 0:
+		_show_upgrade_choices()
+		return
+
+	upgrade_menu.visible = false
+
+	get_tree().paused = false
+
+
+func _create_king_camera() -> void:
+	king_viewport = SubViewport.new()
+
+	king_viewport.size = Vector2i(
+		int(king_camera_render_size.x),
+		int(king_camera_render_size.y)
+	)
+
+	king_viewport.world_2d = get_world_2d()
+
+	king_viewport.render_target_update_mode = (
+		SubViewport.UPDATE_ALWAYS
+	)
+
+	add_child(king_viewport)
+
+
+	king_camera = Camera2D.new()
+
+	king_camera.enabled = true
+
+	king_viewport.add_child(king_camera)
+
+	king_camera.make_current()
+
+
+	var canvas_layer = CanvasLayer.new()
+
+	canvas_layer.layer = 100
+
+	add_child(canvas_layer)
+
+
+	king_camera_frame = ColorRect.new()
+
+	king_camera_frame.color = Color(
+		0.05,
+		0.05,
+		0.05,
+		0.95
+	)
+
+	king_camera_frame.mouse_filter = (
+		Control.MOUSE_FILTER_IGNORE
+	)
+
+	canvas_layer.add_child(
+		king_camera_frame
+	)
+
+
+	king_camera_display = TextureRect.new()
+
+	king_camera_display.texture = (
+		king_viewport.get_texture()
+	)
+
+	king_camera_display.expand_mode = (
+		TextureRect.EXPAND_IGNORE_SIZE
+	)
+
+	king_camera_display.stretch_mode = (
+		TextureRect.STRETCH_SCALE
+	)
+
+	king_camera_display.mouse_filter = (
+		Control.MOUSE_FILTER_IGNORE
+	)
+
+	king_camera_frame.add_child(
+		king_camera_display
+	)
+
+	king_camera_display.position = Vector2(
+		5.0,
+		5.0
+	)
+
+	king_camera_display.size = king_camera_size
+
+	king_camera_frame.size = (
+		king_camera_size +
+		Vector2(10.0, 10.0)
+	)
+
+	_position_king_camera()
+
+	king_camera_frame.visible = false
+
+
+func _position_king_camera() -> void:
+	if !is_instance_valid(
+		king_camera_frame
+	):
+		return
+
+	var viewport_size = (
+		get_viewport_rect().size
+	)
+
+	king_camera_frame.position = Vector2(
+		viewport_size.x -
+		king_camera_size.x -
+		king_camera_margin.x -
+		10.0,
+
+		king_camera_margin.y
+	)
+
+
+func _update_king_camera() -> void:
+	if !is_instance_valid(
+		king_camera_frame
+	):
+		return
+
+	if !is_instance_valid(
+		Global.king_node
+	):
+		king_camera_frame.visible = false
+		return
+
+	king_camera.global_position = (
+		Global.king_node.global_position
+	)
+
+	var distance = global_position.distance_to(
+		Global.king_node.global_position
+	)
+
+	king_camera_frame.visible = (
+		distance >= king_camera_distance
+	)
 "
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_i3pqv"]
@@ -135,6 +794,7 @@ position = Vector2(-4, 78)
 shape = SubResource("CircleShape2D_3vyb7")
 
 [node name="ProgressBar" type="ProgressBar" parent="." unique_id=1807616458]
+visible = false
 offset_left = -59.0
 offset_top = -278.0
 offset_right = 65.0

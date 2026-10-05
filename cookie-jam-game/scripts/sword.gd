@@ -2,10 +2,13 @@ extends Marker2D
 
 @export var swing_duration = 0.16
 @export var recovery_duration = 0.05
+
 @export var swing_arc_degrees = 125.0
 @export var weapon_tip_distance = 90.0
+
 @export var trail_width = 14.0
 @export var trail_lifetime = 0.14
+
 @export var weapon_angle_offset_degrees = 90.0
 
 var attacking = false
@@ -26,14 +29,24 @@ var trail_ages = []
 
 func _ready() -> void:
 	visible = false
+
 	original_scale = scale
 
 	trail = Line2D.new()
+
 	trail.width = trail_width
-	trail.default_color = Color(1.0, 0.9, 0.5, 0.95)
+
+	trail.default_color = Color(
+		1.0,
+		0.9,
+		0.5,
+		0.95
+	)
+
 	trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	trail.end_cap_mode = Line2D.LINE_CAP_ROUND
 	trail.joint_mode = Line2D.LINE_JOINT_ROUND
+
 	trail.z_as_relative = false
 	trail.z_index = 100
 
@@ -53,33 +66,62 @@ func _process(delta: float) -> void:
 		if recovery_timer <= 0.0:
 			recovering = false
 
-	if Input.is_action_pressed("attack") and !recovering:
+	if !recovering:
 		_start_attack()
 
 
 func _start_attack() -> void:
 	attacking = true
+
 	swing_progress = 0.0
+
 	visible = true
 
-	attack_direction = global_position.angle_to_point(get_global_mouse_position())
+	attack_direction = global_position.angle_to_point(
+		get_global_mouse_position()
+	)
 
 	swing_direction *= -1.0
 
 	trail_points.clear()
 	trail_ages.clear()
+
 	trail.clear_points()
 
 
 func _update_attack(delta: float) -> void:
-	swing_progress += delta / swing_duration
+	var current_swing_duration = (
+		swing_duration /
+		Global.attack_speed_multiplier
+	)
 
-	var t = clamp(swing_progress, 0.0, 1.0)
+	swing_progress += (
+		delta /
+		current_swing_duration
+	)
 
-	var half_arc = deg_to_rad(swing_arc_degrees) * 0.5
+	var t = clamp(
+		swing_progress,
+		0.0,
+		1.0
+	)
 
-	var start_angle = attack_direction - half_arc * swing_direction
-	var end_angle = attack_direction + half_arc * swing_direction
+	var half_arc = (
+		deg_to_rad(swing_arc_degrees) *
+		0.5
+	)
+
+	var start_angle = (
+		attack_direction -
+		half_arc *
+		swing_direction
+	)
+
+	var end_angle = (
+		attack_direction +
+		half_arc *
+		swing_direction
+	)
 
 	var eased = _ease_out_quart(t)
 
@@ -89,16 +131,31 @@ func _update_attack(delta: float) -> void:
 		eased
 	)
 
-	rotation = swing_angle + deg_to_rad(weapon_angle_offset_degrees)
+	rotation = (
+		swing_angle +
+		deg_to_rad(
+			weapon_angle_offset_degrees
+		)
+	)
 
 	var punch = sin(t * PI)
 
-	scale = original_scale * Vector2(
-		1.0 + punch * 0.05,
-		1.0 + punch * 0.10
+	var size_multiplier = (
+		Global.sword_size_multiplier
 	)
 
-	_add_trail_point(swing_angle)
+	scale = (
+		original_scale *
+		size_multiplier *
+		Vector2(
+			1.0 + punch * 0.05,
+			1.0 + punch * 0.10
+		)
+	)
+
+	_add_trail_point(
+		swing_angle
+	)
 
 	if t >= 1.0:
 		_finish_attack()
@@ -107,22 +164,51 @@ func _update_attack(delta: float) -> void:
 func _finish_attack() -> void:
 	attacking = false
 	recovering = true
-	recovery_timer = recovery_duration
+
+	recovery_timer = (
+		recovery_duration /
+		Global.attack_speed_multiplier
+	)
 
 	visible = false
-	scale = original_scale
+
+	scale = (
+		original_scale *
+		Global.sword_size_multiplier
+	)
 
 
-func _add_trail_point(swing_angle: float) -> void:
+func _add_trail_point(
+	swing_angle: float
+) -> void:
+
 	if !is_instance_valid(trail):
 		return
 
-	var tip_global = global_position + Vector2.from_angle(swing_angle) * weapon_tip_distance
+	var current_tip_distance = (
+		weapon_tip_distance *
+		Global.sword_size_multiplier
+	)
 
-	var trail_position = trail.to_local(tip_global)
+	var tip_global = (
+		global_position +
+		Vector2.from_angle(
+			swing_angle
+		) *
+		current_tip_distance
+	)
 
-	trail_points.append(trail_position)
-	trail_ages.append(0.0)
+	var trail_position = trail.to_local(
+		tip_global
+	)
+
+	trail_points.append(
+		trail_position
+	)
+
+	trail_ages.append(
+		0.0
+	)
 
 	if trail_points.size() > 24:
 		trail_points.pop_front()
@@ -135,7 +221,11 @@ func _update_trail(delta: float) -> void:
 	if !is_instance_valid(trail):
 		return
 
-	for i in range(trail_ages.size() - 1, -1, -1):
+	for i in range(
+		trail_ages.size() - 1,
+		-1,
+		-1
+	):
 		trail_ages[i] += delta
 
 		if trail_ages[i] >= trail_lifetime:
@@ -160,11 +250,29 @@ func _rebuild_trail() -> void:
 	var fade = 1.0
 
 	if trail_ages.size() > 0:
-		fade = 1.0 - trail_ages[0] / trail_lifetime
+		fade = (
+			1.0 -
+			trail_ages[0] /
+			trail_lifetime
+		)
 
-	trail.modulate.a = clamp(fade, 0.0, 1.0)
-	trail.width = max(trail_width * fade, 2.0)
+	trail.modulate.a = clamp(
+		fade,
+		0.0,
+		1.0
+	)
+
+	trail.width = max(
+		trail_width * fade,
+		2.0
+	)
 
 
 func _ease_out_quart(value: float) -> float:
-	return 1.0 - pow(1.0 - value, 4.0)
+	return (
+		1.0 -
+		pow(
+			1.0 - value,
+			4.0
+		)
+	)
