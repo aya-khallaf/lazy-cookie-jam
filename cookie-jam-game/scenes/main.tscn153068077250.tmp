@@ -1560,6 +1560,15 @@ layer_0/tile_data = PackedInt32Array(-262150, 0, 0, -196614, 0, 0, -131078, 0, 0
 
 [node name="Player" parent="." unique_id=1279900028 instance=ExtResource("2_0wfyh")]
 position = Vector2(112, 287)
+speed = null
+friction = null
+acceleration = null
+king_camera_distance = null
+king_camera_render_size = null
+king_camera_size = null
+king_camera_margin = null
+camera_heart_spawn_interval = null
+max_camera_hearts = null
 
 [node name="Camera2D" type="Camera2D" parent="Player" unique_id=544432327]
 

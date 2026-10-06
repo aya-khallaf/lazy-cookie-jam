@@ -4,6 +4,8 @@ extends Marker2D
 @export var recovery_duration = 0.05
 
 @export var swing_arc_degrees = 125.0
+@export var maximum_swing_arc = 200.0
+
 @export var weapon_tip_distance = 90.0
 
 @export var trail_width = 14.0
@@ -50,14 +52,21 @@ func _ready() -> void:
 	trail.z_as_relative = false
 	trail.z_index = 100
 
-	get_parent().add_child(trail)
+	get_parent().add_child(
+		trail
+	)
 
 
 func _process(delta: float) -> void:
-	_update_trail(delta)
+	_update_trail(
+		delta
+	)
 
 	if attacking:
-		_update_attack(delta)
+		_update_attack(
+			delta
+		)
+
 		return
 
 	if recovering:
@@ -106,8 +115,16 @@ func _update_attack(delta: float) -> void:
 		1.0
 	)
 
+	var current_swing_arc = min(
+		swing_arc_degrees +
+		Global.swing_arc_bonus,
+		maximum_swing_arc
+	)
+
 	var half_arc = (
-		deg_to_rad(swing_arc_degrees) *
+		deg_to_rad(
+			current_swing_arc
+		) *
 		0.5
 	)
 
@@ -123,9 +140,11 @@ func _update_attack(delta: float) -> void:
 		swing_direction
 	)
 
-	var eased = _ease_out_quart(t)
+	var eased = _ease_out_quart(
+		t
+	)
 
-	var swing_angle = lerp_angle(
+	var swing_angle = lerp(
 		start_angle,
 		end_angle,
 		eased
@@ -138,10 +157,13 @@ func _update_attack(delta: float) -> void:
 		)
 	)
 
-	var punch = sin(t * PI)
+	var punch = sin(
+		t * PI
+	)
 
-	var size_multiplier = (
-		Global.sword_size_multiplier
+	var size_multiplier = min(
+		Global.sword_size_multiplier,
+		Global.sword_size_max
 	)
 
 	scale = (
@@ -174,20 +196,27 @@ func _finish_attack() -> void:
 
 	scale = (
 		original_scale *
-		Global.sword_size_multiplier
+		min(
+			Global.sword_size_multiplier,
+			Global.sword_size_max
+		)
 	)
 
 
-func _add_trail_point(
-	swing_angle: float
-) -> void:
-
-	if !is_instance_valid(trail):
+func _add_trail_point(swing_angle: float) -> void:
+	if !is_instance_valid(
+		trail
+	):
 		return
+
+	var size_multiplier = min(
+		Global.sword_size_multiplier,
+		Global.sword_size_max
+	)
 
 	var current_tip_distance = (
 		weapon_tip_distance *
-		Global.sword_size_multiplier
+		size_multiplier
 	)
 
 	var tip_global = (
@@ -198,8 +227,10 @@ func _add_trail_point(
 		current_tip_distance
 	)
 
-	var trail_position = trail.to_local(
-		tip_global
+	var trail_position = (
+		trail.to_local(
+			tip_global
+		)
 	)
 
 	trail_points.append(
@@ -218,7 +249,9 @@ func _add_trail_point(
 
 
 func _update_trail(delta: float) -> void:
-	if !is_instance_valid(trail):
+	if !is_instance_valid(
+		trail
+	):
 		return
 
 	for i in range(
@@ -229,14 +262,21 @@ func _update_trail(delta: float) -> void:
 		trail_ages[i] += delta
 
 		if trail_ages[i] >= trail_lifetime:
-			trail_ages.remove_at(i)
-			trail_points.remove_at(i)
+			trail_ages.remove_at(
+				i
+			)
+
+			trail_points.remove_at(
+				i
+			)
 
 	_rebuild_trail()
 
 
 func _rebuild_trail() -> void:
-	if !is_instance_valid(trail):
+	if !is_instance_valid(
+		trail
+	):
 		return
 
 	trail.clear_points()
@@ -245,7 +285,9 @@ func _rebuild_trail() -> void:
 		return
 
 	for point in trail_points:
-		trail.add_point(point)
+		trail.add_point(
+			point
+		)
 
 	var fade = 1.0
 
