@@ -94,122 +94,74 @@ func _process(delta: float) -> void:
 
 	run_time += delta
 
-	player_hit_cooldown = max(
-		player_hit_cooldown - delta,
-		0.0
-	)
+	player_hit_cooldown = max(player_hit_cooldown - delta, 0.0)
 
-	king_hit_cooldown = max(
-		king_hit_cooldown - delta,
-		0.0
-	)
+	king_hit_cooldown = max(king_hit_cooldown - delta, 0.0)
 
 	if player_health_regen > 0.0:
-		heal_player(
-			player_health_regen * delta
-		)
+		heal_player(player_health_regen * delta)
 
 	if king_health_regen > 0.0:
-		heal_king(
-			king_health_regen * delta
-		)
+		heal_king(king_health_regen * delta)
 
 
 func damage_player(amount: float) -> bool:
-	if player_hit_cooldown > 0.0:
+	if !gameplay_started or player_health <= 0.0 or amount <= 0.0 or player_hit_cooldown > 0.0:
 		return false
-
-	var final_damage = (
-		amount *
-		player_damage_taken_multiplier
-	)
-
-	player_health -= final_damage
-
-	player_health = max(
-		player_health,
-		0.0
-	)
-
-	player_hit_cooldown = 0.35
-
+	player_health = max(player_health - amount * player_damage_taken_multiplier, 0.0)
+	player_hit_cooldown = 0.45
 	return true
 
 
 func damage_king(amount: float) -> bool:
-	if king_hit_cooldown > 0.0:
+	if !gameplay_started or king_health <= 0.0 or amount <= 0.0 or king_hit_cooldown > 0.0:
 		return false
-
-	var final_damage = (
-		amount *
-		king_damage_taken_multiplier
-	)
-
-	king_health -= final_damage
-
-	king_health = max(
-		king_health,
-		0.0
-	)
-
-	king_hit_cooldown = 0.25
-
+	king_health = max(king_health - amount * king_damage_taken_multiplier, 0.0)
+	king_hit_cooldown = 0.35
+	if is_instance_valid(king_node) and king_node.has_method("wake_up"):
+		king_node.wake_up(4.0)
 	return true
 
 
 func heal_player(amount: float) -> void:
-	player_health = min(
-		player_health + amount,
-		player_max_health
-	)
+	if player_health <= 0.0 or amount <= 0.0:
+		return
+	player_health = min(player_health + amount, player_max_health)
 
 
 func heal_king(amount: float) -> void:
-	king_health = min(
-		king_health + amount,
-		king_max_health
-	)
+	if king_health <= 0.0 or amount <= 0.0:
+		return
+	king_health = min(king_health + amount, king_max_health)
 
 
 func add_xp(amount: float) -> void:
-	xp += (
-		amount *
-		xp_gain_multiplier
-	)
-
-	while xp >= xp_to_next_level:
-		xp -= xp_to_next_level
-
+	if !gameplay_started or player_health <= 0.0 or king_health <= 0.0 or amount <= 0.0:
+		return
+	xp += amount * xp_gain_multiplier
+	var previous_pending = pending_level_ups
+	while xp >= max(xp_to_next_level, 1.0):
+		xp -= max(xp_to_next_level, 1.0)
 		_level_up()
+	if pending_level_ups > previous_pending:
+		level_up_requested.emit()
 
 
 func _level_up() -> void:
 	level += 1
-
-	xp_to_next_level = round(
-		xp_to_next_level * 1.18 + 4.0
-	)
-
+	var levels_above_one = float(level - 1)
+	xp_to_next_level = round(20.0 + levels_above_one * 10.0 + pow(levels_above_one, 1.35) * 2.0)
 	king_max_health += 4.0
-	king_health += 4.0
-
-	king_health = min(
-		king_health,
-		king_max_health
-	)
-
-	player_speed_multiplier += 0.005
-	king_speed_multiplier += 0.01
-
+	king_health = min(king_health + 4.0, king_max_health)
+	player_max_health += 3.0
+	player_health = min(player_health + 6.0, player_max_health)
+	player_speed_multiplier = min(player_speed_multiplier + 0.005, 1.65)
+	king_speed_multiplier = min(king_speed_multiplier + 0.01, 2.5)
 	pending_level_ups += 1
-
-	level_up_requested.emit()
 
 
 func get_current_enemy_level() -> int:
-	return 1 + int(
-		run_time / 30.0
-	)
+	return 1 + int(run_time / 30.0)
 
 
 func roll_enemy_level() -> int:
@@ -221,10 +173,7 @@ func roll_enemy_level() -> int:
 	var roll = randf()
 
 	if roll < 0.18:
-		return max(
-			base_level - 1,
-			1
-		)
+		return max(base_level - 1, 1)
 
 	if roll < 0.80:
 		return base_level
@@ -236,186 +185,117 @@ func roll_enemy_level() -> int:
 
 
 func get_upgrade_choices() -> Array:
-	var available_upgrades = [
-		"sword_damage",
-		"attack_speed",
-		"player_health",
-		"player_speed",
-		"king_health",
-		"king_speed",
-		"king_regen",
-		"heart_healing",
-		"xp_gain",
-		"magnet"
-	]
-
-	if sword_size_multiplier < sword_size_max:
-		available_upgrades.append(
-			"sword_size"
-		)
-
-	if swing_arc_bonus < swing_arc_bonus_max:
-		available_upgrades.append(
-			"swing_arc"
-		)
-
-	if sword_crit_chance < 0.40:
-		available_upgrades.append(
-			"sword_crit"
-		)
-
-	if sword_crit_multiplier < 3.0:
-		available_upgrades.append(
-			"sword_crit_damage"
-		)
-
-	if sword_knockback_multiplier < 2.0:
-		available_upgrades.append(
-			"sword_knockback"
-		)
-
-	if player_health_regen < 4.0:
-		available_upgrades.append(
-			"player_regen"
-		)
-
-	if player_damage_taken_multiplier > 0.55:
-		available_upgrades.append(
-			"player_armor"
-		)
-
-	if king_damage_taken_multiplier > 0.55:
-		available_upgrades.append(
-			"king_armor"
-		)
-
-	if heart_drop_chance_bonus < 0.20:
-		available_upgrades.append(
-			"heart_luck"
-		)
-
+	var available = ["sword_damage", "player_health", "king_health"]
+	var capped = {
+		"attack_speed": attack_speed_multiplier < 3.0,
+		"player_speed": player_speed_multiplier < 1.65,
+		"king_speed": king_speed_multiplier < 2.5,
+		"king_regen": king_health_regen < 6.0,
+		"heart_healing": heart_heal_amount < 95.0,
+		"xp_gain": xp_gain_multiplier < 3.0,
+		"magnet": pickup_range_multiplier < 3.0,
+		"sword_size": sword_size_multiplier < sword_size_max,
+		"swing_arc": swing_arc_bonus < swing_arc_bonus_max,
+		"sword_crit": sword_crit_chance < 0.40,
+		"sword_crit_damage": sword_crit_chance > 0.0 and sword_crit_multiplier < 3.0,
+		"sword_knockback": sword_knockback_multiplier < 2.0,
+		"player_regen": player_health_regen < 4.0,
+		"player_armor": player_damage_taken_multiplier > 0.50,
+		"king_armor": king_damage_taken_multiplier > 0.50,
+		"heart_luck": heart_drop_chance_bonus < 0.20
+	}
+	for upgrade_id in capped:
+		if capped[upgrade_id]:
+			available.append(upgrade_id)
 	if !fireball_enabled:
-		available_upgrades.append(
-			"fireball_unlock"
-		)
-
+		available.append("fireball_unlock")
 	else:
-		available_upgrades.append(
-			"fireball_damage"
-		)
-
-		if fireball_cooldown > 0.4:
-			available_upgrades.append(
-				"fireball_rate"
-			)
-
+		available.append("fireball_damage")
+		if fireball_cooldown > 0.35:
+			available.append("fireball_rate")
 		if fireball_projectiles < 5:
-			available_upgrades.append(
-				"fireball_volley"
-			)
-
+			available.append("fireball_volley")
 		if fireball_pierce < 4:
-			available_upgrades.append(
-				"fireball_pierce"
-			)
-
+			available.append("fireball_pierce")
 	if !orbit_sword_enabled:
-		available_upgrades.append(
-			"orbit_sword_unlock"
-		)
-
+		available.append("orbit_sword_unlock")
 	else:
-		available_upgrades.append(
-			"orbit_sword_damage"
-		)
-
+		available.append("orbit_sword_damage")
 		if orbit_sword_count < 4:
-			available_upgrades.append(
-				"orbit_sword_count"
-			)
-
+			available.append("orbit_sword_count")
 		if orbit_sword_speed < 3.5:
-			available_upgrades.append(
-				"orbit_sword_speed"
-			)
-
+			available.append("orbit_sword_speed")
 		if orbit_sword_radius < 150.0:
-			available_upgrades.append(
-				"orbit_sword_radius"
-			)
-
+			available.append("orbit_sword_radius")
 	if !shockwave_enabled:
-		available_upgrades.append(
-			"shockwave_unlock"
-		)
-
+		available.append("shockwave_unlock")
 	else:
-		available_upgrades.append(
-			"shockwave_damage"
-		)
-
-		if shockwave_cooldown > 2.0:
-			available_upgrades.append(
-				"shockwave_rate"
-			)
-
-		if shockwave_radius < 260.0:
-			available_upgrades.append(
-				"shockwave_radius"
-			)
-
+		available.append("shockwave_damage")
+		if shockwave_cooldown > 1.8:
+			available.append("shockwave_rate")
+		if shockwave_radius < 270.0:
+			available.append("shockwave_radius")
 	if !lightning_enabled:
-		available_upgrades.append(
-			"lightning_unlock"
-		)
-
+		available.append("lightning_unlock")
 	else:
-		available_upgrades.append(
-			"lightning_damage"
-		)
-
-		if lightning_cooldown > 0.9:
-			available_upgrades.append(
-				"lightning_rate"
-			)
-
+		available.append("lightning_damage")
+		if lightning_cooldown > 0.8:
+			available.append("lightning_rate")
 		if lightning_chains < 6:
-			available_upgrades.append(
-				"lightning_chains"
-			)
-
-		if lightning_range < 450.0:
-			available_upgrades.append(
-				"lightning_range"
-			)
-
+			available.append("lightning_chains")
+		if lightning_range < 460.0:
+			available.append("lightning_range")
+	var offence = []
+	var support = []
+	var unlocks = []
+	for upgrade_id in available:
+		if upgrade_id.ends_with("_unlock"):
+			unlocks.append(upgrade_id)
+		if _is_weapon_upgrade(upgrade_id):
+			offence.append(upgrade_id)
+		else:
+			support.append(upgrade_id)
 	var choices = []
-
-	while (
-		choices.size() < 3
-		and
-		!available_upgrades.is_empty()
-	):
-		var index = randi_range(
-			0,
-			available_upgrades.size() - 1
-		)
-
-		choices.append(
-			available_upgrades[index]
-		)
-
-		available_upgrades.remove_at(
-			index
-		)
-
+	var first_pool = offence
+	if level <= 3 and !fireball_enabled and !orbit_sword_enabled and !shockwave_enabled and !lightning_enabled:
+		first_pool = unlocks
+	var first = _pick_weighted_upgrade(first_pool)
+	choices.append(first)
+	available.erase(first)
+	var recovery = []
+	if player_health < player_max_health * 0.45:
+		recovery.append("player_health")
+	if king_health < king_max_health * 0.45:
+		recovery.append("king_health")
+	var second = _pick_weighted_upgrade(recovery if !recovery.is_empty() else support)
+	choices.append(second)
+	available.erase(second)
+	choices.append(_pick_weighted_upgrade(available))
+	choices.shuffle()
 	return choices
+
+
+func _is_weapon_upgrade(upgrade_id: String) -> bool:
+	return upgrade_id == "attack_speed" or upgrade_id == "swing_arc" or upgrade_id.begins_with("sword_") or upgrade_id.begins_with("fireball_") or upgrade_id.begins_with("orbit_sword_") or upgrade_id.begins_with("shockwave_") or upgrade_id.begins_with("lightning_")
+
+
+func _pick_weighted_upgrade(pool: Array) -> String:
+	var weighted = []
+	for upgrade_id in pool:
+		var weight = 1
+		if _is_weapon_upgrade(upgrade_id) and !upgrade_id.ends_with("_unlock"):
+			weight = 3
+		if upgrade_id == "sword_crit_damage" and sword_crit_chance < 0.16:
+			weight = 1
+		for i in range(weight):
+			weighted.append(upgrade_id)
+	return str(weighted.pick_random()) if !weighted.is_empty() else "sword_damage"
 
 
 func get_upgrade_text(upgrade_id: String) -> String:
 	match upgrade_id:
 		"sword_damage":
-			return "SHARPENED STEEL\nSword damage +10"
+			return "SHARPENED STEEL\nDamage +%d" % int(max(10.0, round(weapon_damage * 0.22)))
 
 		"attack_speed":
 			return "QUICK HANDS\nSword attack speed +18%"
@@ -454,13 +334,13 @@ func get_upgrade_text(upgrade_id: String) -> String:
 			return "MOVE YOUR MAJESTY\nKing speed +15%"
 
 		"king_health":
-			return "ROYAL FORTITUDE\nKing max health +30"
+			return "ROYAL FORTITUDE\nKing max health +30 and heal 30"
 
 		"king_armor":
 			return "ROYAL ARMOUR\nKing takes 10% less damage"
 
 		"heart_healing":
-			return "BIG HEART\nHearts heal king +15 HP"
+			return "BIG HEART\nHearts heal king +15 HP and you +7.5 HP"
 
 		"heart_luck":
 			return "LUCKY HEART\nEnemies drop hearts 4% more often"
@@ -475,10 +355,10 @@ func get_upgrade_text(upgrade_id: String) -> String:
 			return "FIREBALL\nUnlock automatic fireballs"
 
 		"fireball_damage":
-			return "HOTTER FLAMES\nFireball damage +15"
+			return "HOTTER FLAMES\nDamage +%d" % int(max(15.0, round(fireball_damage * 0.22)))
 
 		"fireball_rate":
-			return "RAPID FLAME\nFireballs fire 15% faster"
+			return "RAPID FLAME\nFireball cooldown -15%"
 
 		"fireball_volley":
 			return "FLAME VOLLEY\nFire one additional fireball"
@@ -490,7 +370,7 @@ func get_upgrade_text(upgrade_id: String) -> String:
 			return "SHORT SWORD\nA sword begins orbiting you"
 
 		"orbit_sword_damage":
-			return "SHARP GUARD\nOrbiting sword damage +8"
+			return "SHARP GUARD\nDamage +%d" % int(max(8.0, round(orbit_sword_damage * 0.22)))
 
 		"orbit_sword_count":
 			return "MORE STEEL\nAdd another orbiting sword"
@@ -505,7 +385,7 @@ func get_upgrade_text(upgrade_id: String) -> String:
 			return "ROYAL SHOCKWAVE\nPeriodically blast nearby enemies"
 
 		"shockwave_damage":
-			return "HEAVY SHOCK\nShockwave damage +18"
+			return "HEAVY SHOCK\nDamage +%d" % int(max(18.0, round(shockwave_damage * 0.22)))
 
 		"shockwave_rate":
 			return "RAPID SHOCK\nShockwave cooldown -15%"
@@ -517,7 +397,7 @@ func get_upgrade_text(upgrade_id: String) -> String:
 			return "CHAIN LIGHTNING\nLightning automatically strikes enemies"
 
 		"lightning_damage":
-			return "HIGH VOLTAGE\nLightning damage +15"
+			return "HIGH VOLTAGE\nDamage +%d" % int(max(15.0, round(lightning_damage * 0.22)))
 
 		"lightning_rate":
 			return "STORM CALLER\nLightning cooldown -15%"
@@ -532,52 +412,42 @@ func get_upgrade_text(upgrade_id: String) -> String:
 
 
 func apply_upgrade(upgrade_id: String) -> void:
+	var previous_damage = weapon_damage
+	var previous_fireball_damage = fireball_damage
+	var previous_orbit_damage = orbit_sword_damage
+	var previous_shockwave_damage = shockwave_damage
+	var previous_lightning_damage = lightning_damage
 	match upgrade_id:
 		"sword_damage":
-			weapon_damage += 10.0
-			last_upgrade_text = "Sword Damage +10"
+			weapon_damage += max(10.0, round(weapon_damage * 0.22))
+			last_upgrade_text = "Sword Damage +%d" % int(weapon_damage - previous_damage)
 
 		"attack_speed":
-			attack_speed_multiplier += 0.18
+			attack_speed_multiplier = min(attack_speed_multiplier + 0.18, 3.0)
 			last_upgrade_text = "Sword Attack Speed +18%"
 
 		"sword_size":
-			sword_size_multiplier = min(
-				sword_size_multiplier + 0.07,
-				sword_size_max
-			)
+			sword_size_multiplier = min(sword_size_multiplier + 0.07, sword_size_max)
 
 			last_upgrade_text = "Sword Size +7%"
 
 		"swing_arc":
-			swing_arc_bonus = min(
-				swing_arc_bonus + 15.0,
-				swing_arc_bonus_max
-			)
+			swing_arc_bonus = min(swing_arc_bonus + 15.0, swing_arc_bonus_max)
 
 			last_upgrade_text = "Swing Area +15 Degrees"
 
 		"sword_crit":
-			sword_crit_chance = min(
-				sword_crit_chance + 0.08,
-				0.40
-			)
+			sword_crit_chance = min(sword_crit_chance + 0.08, 0.40)
 
 			last_upgrade_text = "Critical Chance +8%"
 
 		"sword_crit_damage":
-			sword_crit_multiplier = min(
-				sword_crit_multiplier + 0.25,
-				3.0
-			)
+			sword_crit_multiplier = min(sword_crit_multiplier + 0.25, 3.0)
 
 			last_upgrade_text = "Critical Damage +25%"
 
 		"sword_knockback":
-			sword_knockback_multiplier = min(
-				sword_knockback_multiplier + 0.20,
-				2.0
-			)
+			sword_knockback_multiplier = min(sword_knockback_multiplier + 0.20, 2.0)
 
 			last_upgrade_text = "Sword Knockback +20%"
 
@@ -585,39 +455,30 @@ func apply_upgrade(upgrade_id: String) -> void:
 			player_max_health += 25.0
 			player_health += 25.0
 
-			player_health = min(
-				player_health,
-				player_max_health
-			)
+			player_health = min(player_health, player_max_health)
 
 			last_upgrade_text = "Player Max Health +25"
 
 		"player_regen":
-			player_health_regen = min(
-				player_health_regen + 0.5,
-				4.0
-			)
+			player_health_regen = min(player_health_regen + 0.5, 4.0)
 
 			last_upgrade_text = "Player Regen +0.5 HP/s"
 
 		"player_armor":
-			player_damage_taken_multiplier = max(
-				player_damage_taken_multiplier * 0.92,
-				0.50
-			)
+			player_damage_taken_multiplier = max(player_damage_taken_multiplier * 0.92, 0.50)
 
 			last_upgrade_text = "Player Damage Taken -8%"
 
 		"player_speed":
-			player_speed_multiplier += 0.08
+			player_speed_multiplier = min(player_speed_multiplier + 0.08, 1.65)
 			last_upgrade_text = "Movement Speed +8%"
 
 		"king_regen":
-			king_health_regen += 0.75
+			king_health_regen = min(king_health_regen + 0.75, 6.0)
 			last_upgrade_text = "King Regen +0.75 HP/s"
 
 		"king_speed":
-			king_speed_multiplier += 0.15
+			king_speed_multiplier = min(king_speed_multiplier + 0.15, 2.5)
 			last_upgrade_text = "King Speed +15%"
 
 		"king_health":
@@ -627,31 +488,25 @@ func apply_upgrade(upgrade_id: String) -> void:
 			last_upgrade_text = "King Max Health +30"
 
 		"king_armor":
-			king_damage_taken_multiplier = max(
-				king_damage_taken_multiplier * 0.90,
-				0.50
-			)
+			king_damage_taken_multiplier = max(king_damage_taken_multiplier * 0.90, 0.50)
 
 			last_upgrade_text = "King Damage Taken -10%"
 
 		"heart_healing":
-			heart_heal_amount += 15.0
+			heart_heal_amount = min(heart_heal_amount + 15.0, 95.0)
 			last_upgrade_text = "Heart Healing +15"
 
 		"heart_luck":
-			heart_drop_chance_bonus = min(
-				heart_drop_chance_bonus + 0.04,
-				0.20
-			)
+			heart_drop_chance_bonus = min(heart_drop_chance_bonus + 0.04, 0.20)
 
 			last_upgrade_text = "Heart Drop Chance +4%"
 
 		"xp_gain":
-			xp_gain_multiplier += 0.20
+			xp_gain_multiplier = min(xp_gain_multiplier + 0.20, 3.0)
 			last_upgrade_text = "XP Gain +20%"
 
 		"magnet":
-			pickup_range_multiplier += 0.35
+			pickup_range_multiplier = min(pickup_range_multiplier + 0.35, 3.0)
 			last_upgrade_text = "Pickup Range +35%"
 
 		"fireball_unlock":
@@ -659,31 +514,22 @@ func apply_upgrade(upgrade_id: String) -> void:
 			last_upgrade_text = "Fireball Unlocked"
 
 		"fireball_damage":
-			fireball_damage += 15.0
-			fireball_size_multiplier += 0.06
-			last_upgrade_text = "Fireball Damage +15"
+			fireball_damage += max(15.0, round(fireball_damage * 0.22))
+			fireball_size_multiplier = min(fireball_size_multiplier + 0.06, 1.6)
+			last_upgrade_text = "Fireball Damage +%d" % int(fireball_damage - previous_fireball_damage)
 
 		"fireball_rate":
-			fireball_cooldown = max(
-				fireball_cooldown * 0.85,
-				0.35
-			)
+			fireball_cooldown = max(fireball_cooldown * 0.85, 0.35)
 
 			last_upgrade_text = "Fireball Rate +15%"
 
 		"fireball_volley":
-			fireball_projectiles = min(
-				fireball_projectiles + 1,
-				5
-			)
+			fireball_projectiles = min(fireball_projectiles + 1, 5)
 
 			last_upgrade_text = "Additional Fireball"
 
 		"fireball_pierce":
-			fireball_pierce = min(
-				fireball_pierce + 1,
-				4
-			)
+			fireball_pierce = min(fireball_pierce + 1, 4)
 
 			last_upgrade_text = "Fireball Pierce +1"
 
@@ -693,30 +539,21 @@ func apply_upgrade(upgrade_id: String) -> void:
 			last_upgrade_text = "Short Sword Unlocked"
 
 		"orbit_sword_damage":
-			orbit_sword_damage += 8.0
-			last_upgrade_text = "Orbit Sword Damage +8"
+			orbit_sword_damage += max(8.0, round(orbit_sword_damage * 0.22))
+			last_upgrade_text = "Orbit Sword Damage +%d" % int(orbit_sword_damage - previous_orbit_damage)
 
 		"orbit_sword_count":
-			orbit_sword_count = min(
-				orbit_sword_count + 1,
-				4
-			)
+			orbit_sword_count = min(orbit_sword_count + 1, 4)
 
 			last_upgrade_text = "Additional Orbit Sword"
 
 		"orbit_sword_speed":
-			orbit_sword_speed = min(
-				orbit_sword_speed * 1.18,
-				3.5
-			)
+			orbit_sword_speed = min(orbit_sword_speed * 1.18, 3.5)
 
 			last_upgrade_text = "Orbit Sword Speed +18%"
 
 		"orbit_sword_radius":
-			orbit_sword_radius = min(
-				orbit_sword_radius + 10.0,
-				150.0
-			)
+			orbit_sword_radius = min(orbit_sword_radius + 10.0, 150.0)
 
 			last_upgrade_text = "Orbit Radius +10"
 
@@ -725,22 +562,16 @@ func apply_upgrade(upgrade_id: String) -> void:
 			last_upgrade_text = "Royal Shockwave Unlocked"
 
 		"shockwave_damage":
-			shockwave_damage += 18.0
-			last_upgrade_text = "Shockwave Damage +18"
+			shockwave_damage += max(18.0, round(shockwave_damage * 0.22))
+			last_upgrade_text = "Shockwave Damage +%d" % int(shockwave_damage - previous_shockwave_damage)
 
 		"shockwave_rate":
-			shockwave_cooldown = max(
-				shockwave_cooldown * 0.85,
-				1.8
-			)
+			shockwave_cooldown = max(shockwave_cooldown * 0.85, 1.8)
 
 			last_upgrade_text = "Shockwave Cooldown -15%"
 
 		"shockwave_radius":
-			shockwave_radius = min(
-				shockwave_radius + 25.0,
-				270.0
-			)
+			shockwave_radius = min(shockwave_radius + 25.0, 270.0)
 
 			last_upgrade_text = "Shockwave Radius +25"
 
@@ -749,36 +580,29 @@ func apply_upgrade(upgrade_id: String) -> void:
 			last_upgrade_text = "Chain Lightning Unlocked"
 
 		"lightning_damage":
-			lightning_damage += 15.0
-			last_upgrade_text = "Lightning Damage +15"
+			lightning_damage += max(15.0, round(lightning_damage * 0.22))
+			last_upgrade_text = "Lightning Damage +%d" % int(lightning_damage - previous_lightning_damage)
 
 		"lightning_rate":
-			lightning_cooldown = max(
-				lightning_cooldown * 0.85,
-				0.8
-			)
+			lightning_cooldown = max(lightning_cooldown * 0.85, 0.8)
 
 			last_upgrade_text = "Lightning Cooldown -15%"
 
 		"lightning_chains":
-			lightning_chains = min(
-				lightning_chains + 1,
-				6
-			)
+			lightning_chains = min(lightning_chains + 1, 6)
 
 			last_upgrade_text = "Lightning Chains +1"
 
 		"lightning_range":
-			lightning_range = min(
-				lightning_range + 40.0,
-				460.0
-			)
+			lightning_range = min(lightning_range + 40.0, 460.0)
 
 			last_upgrade_text = "Lightning Range +40"
 
 
 func reset_run_progress() -> void:
 	gameplay_started = false
+	player_node = null
+	king_node = null
 
 	run_time = 0.0
 	kills = 0

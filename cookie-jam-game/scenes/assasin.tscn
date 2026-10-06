@@ -2,15 +2,60 @@
 
 [ext_resource type="Script" uid="uid://bmq8tvibr17ym" path="res://scripts/assasin.gd" id="1_b2qns"]
 [ext_resource type="Texture2D" uid="uid://yxh0i7qi50dv" path="res://assets/goblin .svg" id="2_b2qns"]
+[ext_resource type="Texture2D" uid="uid://dwbb2jqurcxem" path="res://assets/goblin 3.svg" id="2_vw4pi"]
+[ext_resource type="Texture2D" uid="uid://bqtjg1kuj3hya" path="res://assets/goblin 7.svg" id="4_idolf"]
+[ext_resource type="Texture2D" uid="uid://b6nomkh8vnn2e" path="res://assets/goblin 5.svg" id="5_pq0hl"]
+[ext_resource type="Texture2D" uid="uid://cueatbad1au0u" path="res://assets/goblin 6.svg" id="6_kflnw"]
+[ext_resource type="Texture2D" uid="uid://c54h8ueckd6v5" path="res://assets/goblin 2.svg" id="7_hobdh"]
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_b2qns"]
 animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_vw4pi")
+}],
+"loop": true,
+"name": &"dart goblin",
+"speed": 5.0
+}, {
 "frames": [{
 "duration": 1.0,
 "texture": ExtResource("2_b2qns")
 }],
 "loop": true,
 "name": &"goblin assasin",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("4_idolf")
+}],
+"loop": true,
+"name": &"grunkk",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("5_pq0hl")
+}],
+"loop": true,
+"name": &"ork",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("6_kflnw")
+}],
+"loop": true,
+"name": &"spear goblin",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("7_hobdh")
+}],
+"loop": true,
+"name": &"stabby",
 "speed": 5.0
 }]
 
@@ -33,7 +78,7 @@ script = ExtResource("1_b2qns")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1039831818]
 sprite_frames = SubResource("SpriteFrames_b2qns")
-animation = &"goblin assasin"
+animation = &"stabby"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1372308340]
 position = Vector2(0, 53)

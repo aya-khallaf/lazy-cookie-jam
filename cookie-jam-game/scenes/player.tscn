@@ -26,6 +26,9 @@ const LIGHTNING_SCRIPT = preload(\"res://scripts/lightning_weapon.gd\")
 @export var speed = 500.0
 @export var friction = 0.1
 @export var acceleration = 0.1
+@export var dash_speed_multiplier = 2.25
+@export var dash_duration = 0.16
+@export var dash_cooldown = 2.5
 
 @export var king_camera_distance = 500.0
 
@@ -69,27 +72,58 @@ var shockwave_timer = 0.0
 var lightning_timer = 0.0
 
 var orbit_swords = []
+var dash_time_remaining = 0.0
+var dash_cooldown_remaining = 0.0
+var dash_direction = Vector2.RIGHT
+var dash_requested = false
+var dash_trails = []
+var previous_health = 100.0
+var player_flash_timer = 0.0
+var original_sprite_modulate = Color.WHITE
+var run_label
+var king_status_label
+var king_health_bar
+var dash_label
+var notification_label
+var damage_overlay
+var notification_timer = 0.0
+var last_displayed_upgrade = \"\"
+var upgrade_selection_locked = false
+var upgrade_unlock_time = 0
 
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_PAUSABLE
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
-
 	Global.player_node = self
-
+	previous_health = Global.player_health
+	original_sprite_modulate = animated_sprite_2d.modulate
 	add_to_group(\"king_camera_controller\")
-
 	_create_king_camera()
 	_create_xp_hud()
 	_create_upgrade_menu()
 	_create_heart_timer()
-
 	if !Global.level_up_requested.is_connected(_on_level_up_requested):
 		Global.level_up_requested.connect(_on_level_up_requested)
-
 	get_viewport().size_changed.connect(_position_king_camera)
+	set_king_camera_allowed(false)
 
-	if is_instance_valid(king_camera_frame):
-		king_camera_frame.visible = false
+
+func _exit_tree() -> void:
+	if Global.level_up_requested.is_connected(_on_level_up_requested):
+		Global.level_up_requested.disconnect(_on_level_up_requested)
+	if Global.player_node == self:
+		Global.player_node = null
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if !(event is InputEventKey) or !event.pressed or event.echo:
+		return
+	if !Global.gameplay_started or get_tree().paused or Global.player_health <= 0.0:
+		return
+	if event.physical_keycode == KEY_SPACE or event.keycode == KEY_SPACE:
+		dash_requested = true
+		get_viewport().set_input_as_handled()
 
 
 func get_input() -> Vector2:
@@ -111,42 +145,64 @@ func get_input() -> Vector2:
 
 
 func _process(delta: float) -> void:
+	if !Global.gameplay_started:
+		return
 	_update_xp_hud()
+	_update_king_camera()
 	_update_fireball(delta)
 	_update_orbit_swords()
 	_update_shockwave(delta)
 	_update_lightning(delta)
+	notification_timer = max(notification_timer - delta, 0.0)
+	notification_label.visible = notification_timer > 0.0
+	notification_label.modulate.a = min(notification_timer, 1.0)
+	for i in range(dash_trails.size() - 1, -1, -1):
+		dash_trails[i][\"age\"] += delta
+		if dash_trails[i][\"age\"] >= 0.18:
+			dash_trails.remove_at(i)
+	queue_redraw()
 
 
 func _physics_process(delta: float) -> void:
 	$ProgressBar.max_value = Global.player_max_health
 	$ProgressBar.value = Global.player_health
-
-	_update_king_camera()
-
+	if !Global.gameplay_started or Global.player_health <= 0.0:
+		velocity = Vector2.ZERO
+		return
+	dash_cooldown_remaining = max(dash_cooldown_remaining - delta, 0.0)
+	var was_dashing = dash_time_remaining > 0.0
+	dash_time_remaining = max(dash_time_remaining - delta, 0.0)
+	if was_dashing and dash_time_remaining <= 0.0:
+		velocity = velocity.limit_length(speed * Global.player_speed_multiplier)
+	player_flash_timer = max(player_flash_timer - delta, 0.0)
+	if Global.player_health < previous_health:
+		player_flash_timer = 0.16
+	previous_health = Global.player_health
 	var direction = get_input()
-
-	var current_speed = (
-		speed *
-		Global.player_speed_multiplier
-	)
-
-	if direction.length() > 0.0:
+	if dash_requested and dash_cooldown_remaining <= 0.0:
+		dash_direction = direction.normalized()
+		if dash_direction.is_zero_approx():
+			dash_direction = global_position.direction_to(get_global_mouse_position())
+		if dash_direction.is_zero_approx():
+			dash_direction = Vector2.RIGHT
+		dash_time_remaining = max(dash_duration, 0.01)
+		dash_cooldown_remaining = max(dash_cooldown, dash_duration)
+		Global.player_hit_cooldown = max(Global.player_hit_cooldown, dash_time_remaining + 0.08)
+	dash_requested = false
+	var current_speed = speed * Global.player_speed_multiplier
+	if dash_time_remaining > 0.0:
+		velocity = dash_direction * current_speed * dash_speed_multiplier
+		dash_trails.append({\"position\": global_position, \"age\": 0.0})
 		animated_sprite_2d.play(\"walk\")
-
-		velocity = velocity.lerp(
-			direction.normalized() * current_speed,
-			acceleration
-		)
-
 	else:
-		animated_sprite_2d.play(\"idle\")
-
-		velocity = velocity.lerp(
-			Vector2.ZERO,
-			friction
-		)
-
+		var weight = 1.0 - pow(1.0 - clamp(acceleration if !direction.is_zero_approx() else friction, 0.0, 1.0), delta * 60.0)
+		velocity = velocity.lerp(direction.normalized() * current_speed, weight)
+		if velocity.length_squared() < 1.0:
+			velocity = Vector2.ZERO
+		animated_sprite_2d.play(\"walk\" if !direction.is_zero_approx() else \"idle\")
+	animated_sprite_2d.modulate = Color(1.0, 0.35, 0.3) if player_flash_timer > 0.0 else original_sprite_modulate
+	if dash_time_remaining > 0.0:
+		animated_sprite_2d.modulate = original_sprite_modulate * Color(1.0, 0.9, 0.6, 0.65)
 	move_and_slide()
 
 
@@ -155,671 +211,445 @@ func _update_orbit_swords() -> void:
 		for sword in orbit_swords:
 			if is_instance_valid(sword):
 				sword.queue_free()
-
 		orbit_swords.clear()
 		return
-
 	for i in range(orbit_swords.size() - 1, -1, -1):
-		if !is_instance_valid(orbit_swords[i]):
+		if !is_instance_valid(orbit_swords[i]) or orbit_swords[i].is_queued_for_deletion():
 			orbit_swords.remove_at(i)
-
+	var shared_angle = orbit_swords[0].orbit_angle if !orbit_swords.is_empty() else 0.0
 	while orbit_swords.size() < Global.orbit_sword_count:
 		var sword = ORBIT_SWORD_SCRIPT.new()
-
+		sword.orbit_angle = shared_angle
+		sword.orbit_index = orbit_swords.size()
+		sword.orbit_count = Global.orbit_sword_count
 		add_child(sword)
-
 		orbit_swords.append(sword)
-
 	while orbit_swords.size() > Global.orbit_sword_count:
 		var sword = orbit_swords.pop_back()
-
 		if is_instance_valid(sword):
 			sword.queue_free()
-
 	for i in range(orbit_swords.size()):
-		var sword = orbit_swords[i]
-
-		if !is_instance_valid(sword):
-			continue
-
-		sword.orbit_index = i
-		sword.orbit_count = orbit_swords.size()
+		orbit_swords[i].orbit_index = i
+		orbit_swords[i].orbit_count = orbit_swords.size()
 
 
 func _update_shockwave(delta: float) -> void:
-	if !Global.gameplay_started:
-		return
-
 	if !Global.shockwave_enabled:
 		shockwave_timer = 0.0
 		return
-
-	shockwave_timer -= delta
-
+	shockwave_timer = max(shockwave_timer - delta, 0.0)
 	if shockwave_timer > 0.0:
 		return
-
+	var target = _get_nearest_enemy()
+	if !is_instance_valid(target) or global_position.distance_to(target.global_position) > Global.shockwave_radius:
+		return
 	var shockwave = SHOCKWAVE_SCRIPT.new()
-
+	shockwave.process_mode = Node.PROCESS_MODE_PAUSABLE
+	shockwave.position = (get_parent().to_local(global_position) if get_parent() is Node2D else global_position)
 	get_parent().add_child(shockwave)
-
-	shockwave.global_position = global_position
-
 	shockwave_timer = Global.shockwave_cooldown
 
 
 func _update_lightning(delta: float) -> void:
-	if !Global.gameplay_started:
-		return
-
 	if !Global.lightning_enabled:
 		lightning_timer = 0.0
 		return
-
-	lightning_timer -= delta
-
+	lightning_timer = max(lightning_timer - delta, 0.0)
 	if lightning_timer > 0.0:
 		return
-
-	if get_tree().get_nodes_in_group(\"enemy\").is_empty():
+	var target = _get_nearest_enemy()
+	if !is_instance_valid(target) or global_position.distance_to(target.global_position) > Global.lightning_range:
 		return
-
 	var lightning = LIGHTNING_SCRIPT.new()
-
+	lightning.process_mode = Node.PROCESS_MODE_PAUSABLE
+	lightning.position = (get_parent().to_local(global_position) if get_parent() is Node2D else global_position)
 	get_parent().add_child(lightning)
-
-	lightning.global_position = global_position
-
 	lightning.fire()
-
 	lightning_timer = Global.lightning_cooldown
 
 
 func _update_fireball(delta: float) -> void:
-	if !Global.gameplay_started:
-		return
-
 	if !Global.fireball_enabled:
+		fireball_timer = 0.0
 		return
-
-	fireball_timer -= delta
-
+	fireball_timer = max(fireball_timer - delta, 0.0)
 	if fireball_timer > 0.0:
 		return
-
 	var target = _get_nearest_enemy()
-
 	if !is_instance_valid(target):
 		return
-
 	var projectile_count = Global.fireball_projectiles
-	var spread_degrees = 12.0
-
 	for i in range(projectile_count):
-		var centered_index = (
-			float(i) -
-			float(projectile_count - 1) /
-			2.0
-		)
-
-		var angle_offset = deg_to_rad(
-			centered_index *
-			spread_degrees
-		)
-
+		var centered_index = float(i) - float(projectile_count - 1) * 0.5
+		var angle_offset = deg_to_rad(centered_index * 12.0)
 		var fireball = FIREBALL_SCRIPT.new()
-
+		fireball.position = (get_parent().to_local(global_position) if get_parent() is Node2D else global_position)
 		get_parent().add_child(fireball)
-
-		fireball.global_position = global_position
-
-		fireball.setup(
-			target,
-			angle_offset
-		)
-
+		fireball.setup(target, angle_offset)
 	fireball_timer = Global.fireball_cooldown
 
 
 func _get_nearest_enemy():
 	var nearest_enemy = null
 	var nearest_distance = INF
-
-	var enemies = get_tree().get_nodes_in_group(\"enemy\")
-
-	for enemy in enemies:
-		if !is_instance_valid(enemy):
+	for enemy in get_tree().get_nodes_in_group(\"enemy\"):
+		if !(enemy is Node2D) or !is_instance_valid(enemy) or enemy.is_queued_for_deletion():
 			continue
-
-		var distance = global_position.distance_squared_to(
-			enemy.global_position
-		)
-
+		var distance = global_position.distance_squared_to(enemy.global_position)
 		if distance < nearest_distance:
 			nearest_distance = distance
 			nearest_enemy = enemy
-
 	return nearest_enemy
 
 
 func set_king_camera_allowed(value: bool) -> void:
 	king_camera_allowed = value
-
-	if !value:
-		if is_instance_valid(king_camera_frame):
-			king_camera_frame.visible = false
-
-	else:
-		_update_king_camera()
+	_update_king_camera()
 
 
 func _create_heart_timer() -> void:
 	heart_spawn_timer = Timer.new()
-
-	heart_spawn_timer.wait_time = camera_heart_spawn_interval
+	heart_spawn_timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
+	heart_spawn_timer.wait_time = max(camera_heart_spawn_interval, 0.1)
 	heart_spawn_timer.autostart = true
-
-	heart_spawn_timer.timeout.connect(
-		_spawn_camera_heart
-	)
-
+	heart_spawn_timer.timeout.connect(_spawn_camera_heart)
 	add_child(heart_spawn_timer)
 
 
 func _spawn_camera_heart() -> void:
-	if !Global.gameplay_started:
+	if !Global.gameplay_started or get_tree().paused or !is_instance_valid(Global.king_node):
 		return
-
-	if !is_instance_valid(Global.king_node):
+	if Global.king_health >= Global.king_max_health and Global.player_health >= Global.player_max_health:
 		return
-
-	if Global.king_health >= Global.king_max_health:
+	if get_tree().get_nodes_in_group(\"heart_pickup\").size() >= max_camera_hearts:
 		return
-
-	var current_hearts = get_tree().get_nodes_in_group(
-		\"heart_pickup\"
-	)
-
-	if current_hearts.size() >= max_camera_hearts:
+	var controllers = get_tree().get_nodes_in_group(\"enemy_spawner_controller\")
+	if controllers.is_empty():
 		return
-
-	var away_direction = (
-		Global.king_node.global_position.direction_to(
-			global_position
-		)
-	)
-
-	if away_direction.length() < 0.01:
-		away_direction = Vector2.RIGHT.rotated(
-			randf() *
-			TAU
-		)
-
-	away_direction = away_direction.normalized()
-
-	var camera_zoom = Vector2.ONE
-
-	var current_camera = get_viewport().get_camera_2d()
-
-	if is_instance_valid(current_camera):
-		camera_zoom = current_camera.zoom
-
+	var away_direction = Global.king_node.global_position.direction_to(global_position)
+	if away_direction.is_zero_approx():
+		away_direction = Vector2.from_angle(randf() * TAU)
+	var canvas = get_viewport().get_canvas_transform()
+	var inverse_canvas = canvas.affine_inverse()
 	var viewport_size = get_viewport_rect().size
-
-	var horizontal_zoom = max(
-		camera_zoom.x,
-		0.01
-	)
-
-	var vertical_zoom = max(
-		camera_zoom.y,
-		0.01
-	)
-
-	var half_view = Vector2(
-		viewport_size.x /
-		(2.0 * horizontal_zoom),
-
-		viewport_size.y /
-		(2.0 * vertical_zoom)
-	)
-
-	var x_edge_distance = 1000000.0
-	var y_edge_distance = 1000000.0
-
-	if abs(away_direction.x) > 0.001:
-		x_edge_distance = (
-			half_view.x /
-			abs(away_direction.x)
-		)
-
-	if abs(away_direction.y) > 0.001:
-		y_edge_distance = (
-			half_view.y /
-			abs(away_direction.y)
-		)
-
-	var edge_distance = min(
-		x_edge_distance,
-		y_edge_distance
-	)
-
-	var spawn_distance = (
-		edge_distance *
-		0.65
-	)
-
-	var perpendicular = Vector2(
-		-away_direction.y,
-		away_direction.x
-	)
-
-	var spawn_position = (
-		global_position +
-		away_direction *
-		spawn_distance +
-		perpendicular *
-		randf_range(
-			-35.0,
-			35.0
-		)
-	)
-
-	var heart = HEART_SCRIPT.new()
-
-	get_parent().add_child(heart)
-
-	heart.global_position = spawn_position
+	var screen_origin = canvas * global_position
+	var screen_minimum = Vector2(35.0, 65.0)
+	var screen_maximum = Vector2(max(viewport_size.x - 35.0, 35.0), max(viewport_size.y - 90.0, 65.0))
+	for i in range(24):
+		var direction = away_direction.rotated(randf_range(-0.8, 0.8))
+		var screen_direction = (canvas.x * direction.x + canvas.y * direction.y).normalized()
+		var edge_distance = INF
+		if screen_direction.x > 0.001:
+			edge_distance = min(edge_distance, (screen_maximum.x - screen_origin.x) / screen_direction.x)
+		elif screen_direction.x < -0.001:
+			edge_distance = min(edge_distance, (screen_minimum.x - screen_origin.x) / screen_direction.x)
+		if screen_direction.y > 0.001:
+			edge_distance = min(edge_distance, (screen_maximum.y - screen_origin.y) / screen_direction.y)
+		elif screen_direction.y < -0.001:
+			edge_distance = min(edge_distance, (screen_minimum.y - screen_origin.y) / screen_direction.y)
+		if edge_distance <= 0.0 or is_inf(edge_distance):
+			continue
+		var screen_candidate = screen_origin + screen_direction * edge_distance * randf_range(0.6, 0.75)
+		var candidate = inverse_canvas * screen_candidate
+		if candidate.distance_to(global_position) < 180.0 or (candidate - global_position).dot(away_direction) <= 0.0:
+			continue
+		for controller in controllers:
+			if controller.has_method(\"is_walkable_position\") and controller.is_walkable_position(candidate):
+				var heart = HEART_SCRIPT.new()
+				heart.position = (get_parent().to_local(candidate) if get_parent() is Node2D else candidate)
+				get_parent().add_child(heart)
+				return
 
 
 func _create_xp_hud() -> void:
 	var canvas_layer = CanvasLayer.new()
-
 	canvas_layer.layer = 90
-
 	add_child(canvas_layer)
-
 	xp_hud = Control.new()
-
 	canvas_layer.add_child(xp_hud)
-
 	xp_hud.add_to_group(\"xp_hud\")
-
 	xp_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	xp_hud.position = Vector2.ZERO
-	xp_hud.size = get_viewport_rect().size
-
+	xp_hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	damage_overlay = ColorRect.new()
+	damage_overlay.color = Color(0.8, 0.06, 0.04, 0.0)
+	damage_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	xp_hud.add_child(damage_overlay)
+	damage_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	xp_bar = ProgressBar.new()
-
-	xp_hud.add_child(xp_bar)
-
-	var viewport_size = get_viewport_rect().size
-
-	xp_bar.position = Vector2(
-		viewport_size.x / 2.0 - 200.0,
-		viewport_size.y - 45.0
-	)
-
-	xp_bar.size = Vector2(
-		400.0,
-		25.0
-	)
-
-	xp_bar.min_value = 0.0
-	xp_bar.max_value = Global.xp_to_next_level
-	xp_bar.value = Global.xp
-
 	xp_bar.show_percentage = false
 	xp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	level_label = Label.new()
-
-	xp_hud.add_child(level_label)
-
-	level_label.position = Vector2(
-		viewport_size.x / 2.0 - 250.0,
-		viewport_size.y - 80.0
-	)
-
-	level_label.size = Vector2(
-		500.0,
-		30.0
-	)
-
+	xp_hud.add_child(xp_bar)
+	var background = StyleBoxFlat.new()
+	background.bg_color = Color(0.04, 0.05, 0.09, 0.9)
+	background.corner_radius_top_left = 7
+	background.corner_radius_top_right = 7
+	background.corner_radius_bottom_left = 7
+	background.corner_radius_bottom_right = 7
+	xp_bar.add_theme_stylebox_override(\"background\", background)
+	var fill = background.duplicate()
+	fill.bg_color = Color(0.25, 0.65, 1.0)
+	xp_bar.add_theme_stylebox_override(\"fill\", fill)
+	level_label = _make_hud_label(18)
 	level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	run_label = _make_hud_label(20)
+	run_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	king_status_label = _make_hud_label(18)
+	king_health_bar = ProgressBar.new()
+	king_health_bar.show_percentage = false
+	king_health_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	xp_hud.add_child(king_health_bar)
+	king_health_bar.add_theme_stylebox_override(\"background\", background.duplicate())
+	var king_fill = fill.duplicate()
+	king_fill.bg_color = Color(1.0, 0.35, 0.3)
+	king_health_bar.add_theme_stylebox_override(\"fill\", king_fill)
+	dash_label = _make_hud_label(16)
+	notification_label = _make_hud_label(18)
+	notification_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	notification_label.add_theme_color_override(\"font_color\", Color(1.0, 0.85, 0.35))
+	notification_label.visible = false
+	_layout_hud()
+	xp_hud.visible = Global.gameplay_started
 
-	level_label.add_theme_font_size_override(
-		\"font_size\",
-		20
-	)
 
-	xp_hud.visible = !get_tree().paused
+func _make_hud_label(font_size: int) -> Label:
+	var label = Label.new()
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_font_size_override(\"font_size\", font_size)
+	label.add_theme_color_override(\"font_outline_color\", Color(0.02, 0.02, 0.04))
+	label.add_theme_constant_override(\"outline_size\", 4)
+	xp_hud.add_child(label)
+	return label
+
+
+func _layout_hud() -> void:
+	if !is_instance_valid(xp_hud):
+		return
+	var viewport_size = get_viewport_rect().size
+	var bar_width = min(480.0, max(viewport_size.x - 40.0, 100.0))
+	xp_bar.position = Vector2((viewport_size.x - bar_width) * 0.5, viewport_size.y - 35.0)
+	xp_bar.size = Vector2(bar_width, 16.0)
+	level_label.position = Vector2((viewport_size.x - bar_width) * 0.5, viewport_size.y - 65.0)
+	level_label.size = Vector2(bar_width, 28.0)
+	run_label.position = Vector2(viewport_size.x * 0.5 - 180.0, 16.0)
+	run_label.size = Vector2(360.0, 30.0)
+	king_status_label.position = Vector2(20.0, 18.0)
+	king_status_label.size = Vector2(260.0, 28.0)
+	king_health_bar.position = Vector2(20.0, 51.0)
+	king_health_bar.size = Vector2(200.0, 14.0)
+	dash_label.position = Vector2(20.0, viewport_size.y - 96.0)
+	dash_label.size = Vector2(220.0, 25.0)
+	notification_label.position = Vector2(viewport_size.x * 0.5 - 260.0, 58.0)
+	notification_label.size = Vector2(520.0, 30.0)
 
 
 func _update_xp_hud() -> void:
 	if !is_instance_valid(xp_bar):
 		return
-
-	xp_bar.max_value = max(
-		Global.xp_to_next_level,
-		1.0
-	)
-
+	xp_bar.max_value = max(Global.xp_to_next_level, 1.0)
 	xp_bar.value = Global.xp
-
-	level_label.text = (
-		\"LEVEL %d    XP %d / %d\" %
-		[
-			Global.level,
-			int(Global.xp),
-			int(Global.xp_to_next_level)
-		]
-	)
+	level_label.text = \"LEVEL %d    XP %d / %d\" % [Global.level, int(Global.xp), int(Global.xp_to_next_level)]
+	var seconds = int(Global.run_time)
+	run_label.text = \"%02d:%02d    %d KILLS\" % [seconds / 60, seconds % 60, Global.kills]
+	var state = \"FOLLOWING\"
+	if is_instance_valid(Global.king_node):
+		if Global.king_node.sleeping:
+			state = \"SLEEPING\"
+		elif Global.king_node.distracted:
+			state = \"DISTRACTED\"
+	king_status_label.text = \"KING %d / %d  %s\" % [int(ceil(Global.king_health)), int(Global.king_max_health), state]
+	king_health_bar.max_value = Global.king_max_health
+	king_health_bar.value = Global.king_health
+	king_status_label.modulate = Color(1.0, 0.45, 0.35) if Global.king_health < Global.king_max_health * 0.3 else Color.WHITE
+	dash_label.text = \"SPACE: DODGE %.1fs\" % dash_cooldown_remaining if dash_cooldown_remaining > 0.0 else \"SPACE: DODGE READY\"
+	dash_label.modulate = Color(0.7, 0.75, 0.85) if dash_cooldown_remaining > 0.0 else Color(1.0, 0.85, 0.35)
+	damage_overlay.color.a = player_flash_timer * 0.8
+	if Global.last_upgrade_text != last_displayed_upgrade:
+		last_displayed_upgrade = Global.last_upgrade_text
+		notification_label.text = last_displayed_upgrade
+		notification_timer = 2.5
 
 
 func _create_upgrade_menu() -> void:
 	upgrade_layer = CanvasLayer.new()
-
 	upgrade_layer.layer = 200
 	upgrade_layer.process_mode = Node.PROCESS_MODE_ALWAYS
-
 	add_child(upgrade_layer)
-
 	upgrade_menu = ColorRect.new()
-
-	upgrade_menu.color = Color(
-		0.0,
-		0.0,
-		0.0,
-		0.78
-	)
-
+	upgrade_menu.color = Color(0.02, 0.025, 0.05, 0.88)
 	upgrade_menu.process_mode = Node.PROCESS_MODE_ALWAYS
-
 	upgrade_layer.add_child(upgrade_menu)
-
-	upgrade_menu.set_anchors_and_offsets_preset(
-		Control.PRESET_FULL_RECT
-	)
-
+	upgrade_menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var center = CenterContainer.new()
+	upgrade_menu.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var box = VBoxContainer.new()
-
-	box.process_mode = Node.PROCESS_MODE_ALWAYS
-
-	upgrade_menu.add_child(box)
-
-	box.set_anchors_preset(
-		Control.PRESET_CENTER
-	)
-
-	box.offset_left = -325.0
-	box.offset_right = 325.0
-	box.offset_top = -230.0
-	box.offset_bottom = 230.0
-
-	box.add_theme_constant_override(
-		\"separation\",
-		15
-	)
-
+	box.add_theme_constant_override(\"separation\", 14)
+	center.add_child(box)
 	upgrade_title = Label.new()
-
-	upgrade_title.text = \"LEVEL UP\"
-
 	upgrade_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-
-	upgrade_title.add_theme_font_size_override(
-		\"font_size\",
-		36
-	)
-
+	upgrade_title.add_theme_font_size_override(\"font_size\", 34)
+	upgrade_title.add_theme_color_override(\"font_color\", Color(1.0, 0.85, 0.35))
 	box.add_child(upgrade_title)
-
 	var subtitle = Label.new()
-
-	subtitle.text = \"Choose an upgrade\"
-
+	subtitle.text = \"Choose with the mouse or press 1, 2, or 3\"
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-
-	subtitle.add_theme_font_size_override(
-		\"font_size\",
-		18
-	)
-
+	subtitle.add_theme_font_size_override(\"font_size\", 17)
 	box.add_child(subtitle)
-
 	for i in range(3):
 		var button = Button.new()
-
-		button.custom_minimum_size = Vector2(
-			650.0,
-			100.0
-		)
-
-		button.add_theme_font_size_override(
-			\"font_size\",
-			20
-		)
-
+		button.custom_minimum_size = Vector2(min(600.0, max(get_viewport_rect().size.x - 40.0, 260.0)), 100.0)
+		button.add_theme_font_size_override(\"font_size\", 19)
 		button.process_mode = Node.PROCESS_MODE_ALWAYS
-
-		button.pressed.connect(
-			_on_upgrade_button_pressed.bind(i)
-		)
-
+		var normal = StyleBoxFlat.new()
+		normal.bg_color = Color(0.08, 0.1, 0.16)
+		normal.border_color = Color(0.4, 0.45, 0.55)
+		normal.set_border_width_all(2)
+		normal.set_corner_radius_all(10)
+		button.add_theme_stylebox_override(\"normal\", normal)
+		var hover = normal.duplicate()
+		hover.bg_color = Color(0.17, 0.2, 0.28)
+		hover.border_color = Color(1.0, 0.85, 0.35)
+		button.add_theme_stylebox_override(\"hover\", hover)
+		button.add_theme_stylebox_override(\"focus\", hover)
+		var key = InputEventKey.new()
+		key.keycode = KEY_1 + i
+		button.shortcut = Shortcut.new()
+		button.shortcut.events = [key]
+		button.pressed.connect(_on_upgrade_button_pressed.bind(i))
 		box.add_child(button)
-
 		upgrade_buttons.append(button)
-
 	upgrade_menu.visible = false
 
 
 func _on_level_up_requested() -> void:
-	if !is_instance_valid(upgrade_menu):
+	if !Global.gameplay_started or !is_instance_valid(upgrade_menu) or upgrade_menu.visible:
 		return
-
-	if upgrade_menu.visible:
-		return
-
 	_show_upgrade_choices()
 
 
 func _show_upgrade_choices() -> void:
-	if Global.pending_level_ups <= 0:
+	if Global.pending_level_ups <= 0 or !Global.gameplay_started:
 		return
-
 	current_upgrade_choices = Global.get_upgrade_choices()
-
-	for i in range(3):
-		upgrade_buttons[i].text = (
-			Global.get_upgrade_text(
-				current_upgrade_choices[i]
-			)
-		)
-
-	upgrade_title.text = (
-		\"LEVEL %d\" %
-		Global.level
-	)
-
+	for i in range(upgrade_buttons.size()):
+		upgrade_buttons[i].disabled = i >= current_upgrade_choices.size()
+		upgrade_buttons[i].visible = i < current_upgrade_choices.size()
+		if i < current_upgrade_choices.size():
+			upgrade_buttons[i].text = \"[%d]  %s\" % [i + 1, Global.get_upgrade_text(current_upgrade_choices[i])]
+	upgrade_title.text = \"LEVEL %d\" % (Global.level - Global.pending_level_ups + 1)
 	upgrade_menu.visible = true
-
+	upgrade_selection_locked = false
+	upgrade_unlock_time = Time.get_ticks_msec() + 180
 	if is_instance_valid(king_camera_frame):
 		king_camera_frame.visible = false
-
+		king_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	get_tree().paused = true
 
 
 func _on_upgrade_button_pressed(index: int) -> void:
-	if index < 0:
+	if upgrade_selection_locked or !upgrade_menu.visible or !Global.gameplay_started:
 		return
-
-	if index >= current_upgrade_choices.size():
+	if Time.get_ticks_msec() < upgrade_unlock_time or index < 0 or index >= current_upgrade_choices.size():
 		return
-
+	upgrade_selection_locked = true
 	var upgrade_id = current_upgrade_choices[index]
-
 	Global.apply_upgrade(upgrade_id)
-
 	_update_orbit_swords()
-
-	Global.pending_level_ups -= 1
-
+	Global.pending_level_ups = maxi(Global.pending_level_ups - 1, 0)
+	for button in upgrade_buttons:
+		button.release_focus()
 	if Global.pending_level_ups > 0:
 		_show_upgrade_choices()
 		return
-
 	upgrade_menu.visible = false
-
+	current_upgrade_choices.clear()
 	get_tree().paused = false
-
 	_update_king_camera()
+
+
+func close_gameplay_ui() -> void:
+	upgrade_menu.visible = false
+	current_upgrade_choices.clear()
+	upgrade_selection_locked = true
+	set_king_camera_allowed(false)
 
 
 func _create_king_camera() -> void:
 	king_viewport = SubViewport.new()
-
-	king_viewport.size = Vector2i(
-		int(king_camera_render_width),
-		int(king_camera_render_height)
-	)
-
+	king_viewport.size = Vector2i(int(king_camera_render_width), int(king_camera_render_height))
 	king_viewport.world_2d = get_world_2d()
-
-	king_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-
+	king_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	add_child(king_viewport)
 
 	king_camera = Camera2D.new()
-
 	king_camera.enabled = true
-
 	king_viewport.add_child(king_camera)
-
 	king_camera.make_current()
 
 	var canvas_layer = CanvasLayer.new()
-
 	canvas_layer.layer = 100
-
 	add_child(canvas_layer)
 
 	king_camera_frame = ColorRect.new()
-
-	king_camera_frame.color = Color(
-		0.05,
-		0.05,
-		0.05,
-		0.95
-	)
-
+	king_camera_frame.color = Color(0.05, 0.05, 0.05, 0.95)
 	king_camera_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
 	canvas_layer.add_child(king_camera_frame)
 
 	king_camera_display = TextureRect.new()
-
 	king_camera_display.texture = king_viewport.get_texture()
-
 	king_camera_display.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	king_camera_display.stretch_mode = TextureRect.STRETCH_SCALE
 	king_camera_display.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
 	king_camera_frame.add_child(king_camera_display)
-
-	king_camera_display.position = Vector2(
-		5.0,
-		5.0
-	)
-
-	king_camera_display.size = Vector2(
-		king_camera_width,
-		king_camera_height
-	)
+	king_camera_display.position = Vector2(5.0, 5.0)
+	king_camera_display.size = Vector2(king_camera_width, king_camera_height)
 
 	king_camera_label = Label.new()
-
 	king_camera_label.text = \"Protect the King!\"
-
 	king_camera_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	king_camera_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-
-	king_camera_label.position = Vector2(
-		5.0,
-		king_camera_height + 7.0
-	)
-
-	king_camera_label.size = Vector2(
-		king_camera_width,
-		32.0
-	)
-
-	king_camera_label.add_theme_font_size_override(
-		\"font_size\",
-		20
-	)
-
-	king_camera_label.add_theme_color_override(
-		\"font_color\",
-		Color.WHITE
-	)
-
+	king_camera_label.position = Vector2(5.0, king_camera_height + 7.0)
+	king_camera_label.size = Vector2(king_camera_width, 32.0)
+	king_camera_label.add_theme_font_size_override(\"font_size\", 16)
+	king_camera_label.add_theme_color_override(\"font_color\", Color.WHITE)
 	king_camera_frame.add_child(king_camera_label)
 
-	king_camera_frame.size = Vector2(
-		king_camera_width + 10.0,
-		king_camera_height + 50.0
-	)
-
+	king_camera_frame.size = Vector2(king_camera_width + 10.0, king_camera_height + 50.0)
 	_position_king_camera()
-
 	king_camera_frame.visible = false
 
 
 func _position_king_camera() -> void:
 	if !is_instance_valid(king_camera_frame):
 		return
-
 	var viewport_size = get_viewport_rect().size
-
-	king_camera_frame.position = Vector2(
-		viewport_size.x -
-		king_camera_width -
-		king_camera_margin_x -
-		10.0,
-
-		king_camera_margin_y
-	)
+	king_camera_frame.position = Vector2(max(viewport_size.x - king_camera_width - king_camera_margin_x - 10.0, 0.0), king_camera_margin_y)
+	_layout_hud()
 
 
 func _update_king_camera() -> void:
 	if !is_instance_valid(king_camera_frame):
 		return
-
-	if !king_camera_allowed:
+	var allowed = king_camera_allowed and Global.gameplay_started and !get_tree().paused and is_instance_valid(Global.king_node)
+	if !allowed:
 		king_camera_frame.visible = false
+		king_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 		return
+	king_camera.global_position = Global.king_node.global_position
+	king_camera.zoom = Vector2.ONE
+	var distance = global_position.distance_to(Global.king_node.global_position)
+	var visibility_distance = max(king_camera_distance - 35.0, 0.0) if king_camera_frame.visible else king_camera_distance
+	king_camera_frame.visible = distance >= visibility_distance
+	king_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if king_camera_frame.visible else SubViewport.UPDATE_DISABLED
+	var state = \"Sleeping\" if Global.king_node.sleeping else \"Distracted\" if Global.king_node.distracted else \"Following\"
+	king_camera_label.text = \"KING %d / %d - %s\" % [int(ceil(Global.king_health)), int(Global.king_max_health), state]
+	king_camera_label.modulate = Color(1.0, 0.4, 0.3) if Global.king_health < Global.king_max_health * 0.3 else Color.WHITE
 
-	if get_tree().paused:
-		king_camera_frame.visible = false
-		return
 
-	if !is_instance_valid(Global.king_node):
-		king_camera_frame.visible = false
-		return
-
-	king_camera.global_position = (
-		Global.king_node.global_position
-	)
-
-	var distance = global_position.distance_to(
-		Global.king_node.global_position
-	)
-
-	king_camera_frame.visible = (
-		distance >= king_camera_distance
-	)
+func _draw() -> void:
+	for afterimage in dash_trails:
+		var fade = max(1.0 - afterimage[\"age\"] / 0.18, 0.0)
+		draw_circle(to_local(afterimage[\"position\"]), 16.0 * fade, Color(1.0, 0.8, 0.3, fade * 0.2))
 "
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_i3pqv"]
