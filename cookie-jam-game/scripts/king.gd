@@ -108,7 +108,7 @@ func wake_up(minimum_awake_time: float = 0.0) -> void:
 		return
 	distracted = false
 	sleeping = false
-	var awake_time = max(randf_range(3.0, 7.0), minimum_awake_time)
+	var awake_time = max(randf_range(2.0, 3.5), minimum_awake_time)
 	$sleep_timer.wait_time = awake_time
 	$sleep_timer.start()
 	queue_redraw()

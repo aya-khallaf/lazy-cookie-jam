@@ -91,8 +91,6 @@ bg_color = Color(0.18307453, 0.00033713185, 0.30978307, 1)
 bg_color = Color(0.7195479, 0.4348933, 1, 1)
 
 [node name="king" type="CharacterBody2D" unique_id=1099200405]
-collision_layer = 2
-collision_mask = 2
 script = ExtResource("1_gs1rm")
 speed = 200.0
 wander_speed = 150.0
@@ -116,7 +114,6 @@ position = Vector2(0, 94)
 shape = SubResource("CircleShape2D_6iuwv")
 
 [node name="sleep_timer" type="Timer" parent="." unique_id=1081824566]
-wait_time = 3.0
 
 [node name="ProgressBar" type="ProgressBar" parent="." unique_id=2033465190]
 offset_left = -61.0

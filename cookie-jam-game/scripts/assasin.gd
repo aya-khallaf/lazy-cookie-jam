@@ -58,21 +58,17 @@ var reinforcement_timer = 12.0
 var boss_attack_index = 0
 var arrival_time = 0.45
 
-
 class Dart:
 	extends Node2D
 
 	var direction = Vector2.RIGHT
-	var speed = 470.0
-	var damage = 12.0
+	var speed = 1000.0
+	var damage = 20.0
 	var lifetime = 4.0
 	var remaining_distance = 650.0
 	var texture
 	var angle_offset = 0.0
-	var excluded: Array[RID] = []
-	var collision_mask = 1
-	var hit_shape = CircleShape2D.new()
-	var previous_targets = {}
+	var wall_collision_mask = 1
 
 	func _ready() -> void:
 		process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -80,72 +76,92 @@ class Dart:
 		top_level = true
 		z_index = 35
 		add_to_group("enemy_dart")
-		hit_shape.radius = 7.0
+
 		var sprite = Sprite2D.new()
 		sprite.texture = texture
-		if texture != null:
-			sprite.scale = Vector2.ONE * 52.0 / max(texture.get_size().x, texture.get_size().y)
+		sprite.scale = Vector2.ONE * 52.0 / max(texture.get_size().x, texture.get_size().y)
 		add_child(sprite)
+
 		rotation = direction.angle() + angle_offset
-		for actor in [Global.player_node, Global.king_node]:
-			if is_instance_valid(actor) and actor is CollisionObject2D:
-				previous_targets[actor.get_instance_id()] = actor.global_position
-				excluded.append(actor.get_rid())
-				collision_mask |= actor.collision_mask
-		for enemy in get_tree().get_nodes_in_group("enemy"):
-			if enemy is CollisionObject2D:
-				excluded.append(enemy.get_rid())
 
 	func _physics_process(delta: float) -> void:
-		if !Global.gameplay_started or Global.player_health <= 0.0 or Global.king_health <= 0.0:
+		if !Global.gameplay_started:
 			queue_free()
 			return
+
 		lifetime -= delta
+
 		var start = global_position
 		var travel = min(speed * delta, remaining_distance)
-		remaining_distance -= travel
 		var end = start + direction * travel
-		var query = PhysicsRayQueryParameters2D.create(start, end, collision_mask, excluded)
-		var wall = get_world_2d().direct_space_state.intersect_ray(query)
-		var travel_fraction = 1.0
+
+		if is_instance_valid(Global.player_node) and Global.player_health > 0.0:
+			if _check_target(Global.player_node, start, end):
+				Global.damage_player(damage)
+				queue_free()
+				return
+
+		if is_instance_valid(Global.king_node) and Global.king_health > 0.0:
+			if _check_target(Global.king_node, start, end):
+				Global.damage_king(damage)
+				queue_free()
+				return
+
+		var wall_query = PhysicsRayQueryParameters2D.create(
+			start,
+			end,
+			wall_collision_mask
+		)
+
+		var wall = get_world_2d().direct_space_state.intersect_ray(wall_query)
+
 		if !wall.is_empty():
-			travel_fraction = start.distance_to(wall["position"]) / max(start.distance_to(end), 0.001)
-		var samples = maxi(int(ceil(start.distance_to(end) / 8.0)), 1)
-		for i in range(samples + 1):
-			var fraction = float(i) / float(samples)
-			if fraction > travel_fraction:
-				break
-			var point = start.lerp(end, fraction)
-			for actor in [Global.player_node, Global.king_node]:
-				if !is_instance_valid(actor) or !(actor is CollisionObject2D):
-					continue
-				var previous = previous_targets.get(actor.get_instance_id(), actor.global_position)
-				var motion_offset = previous.lerp(actor.global_position, fraction) - actor.global_position
-				if _touches_actor(actor, point, motion_offset):
-					if actor == Global.player_node:
-						Global.damage_player(damage)
-					else:
-						Global.damage_king(damage)
-					queue_free()
-					return
-		global_position = start.lerp(end, travel_fraction)
-		for actor in [Global.player_node, Global.king_node]:
-			if is_instance_valid(actor):
-				previous_targets[actor.get_instance_id()] = actor.global_position
-		if !wall.is_empty() or lifetime <= 0.0 or remaining_distance <= 0.0:
+			global_position = wall["position"]
+			queue_free()
+			return
+
+		global_position = end
+		remaining_distance -= travel
+
+		if lifetime <= 0.0 or remaining_distance <= 0.0:
 			queue_free()
 
-	func _touches_actor(actor: CollisionObject2D, point: Vector2, motion_offset: Vector2) -> bool:
-		for owner_id in actor.get_shape_owners():
-			if actor.is_shape_owner_disabled(owner_id):
-				continue
-			var transform = actor.global_transform * actor.shape_owner_get_transform(owner_id)
-			transform.origin += motion_offset
-			for i in range(actor.shape_owner_get_shape_count(owner_id)):
-				var shape = actor.shape_owner_get_shape(owner_id, i)
-				if shape != null and hit_shape.collide(Transform2D(0.0, point), shape, transform):
-					return true
-		return false
+	func _check_target(actor: Node2D, start: Vector2, end: Vector2) -> bool:
+		if !is_instance_valid(actor):
+			return false
+
+		var target_position = actor.global_position
+		var closest_point = _closest_point_on_segment(target_position, start, end)
+
+		var hit_distance = 280.0
+
+		return closest_point.distance_to(target_position) <= hit_distance
+
+	func _closest_point_on_segment(point: Vector2, start: Vector2, end: Vector2) -> Vector2:
+		var line = end - start
+		var length_squared = line.length_squared()
+
+		if length_squared <= 0.001:
+			return start
+
+		var t = clamp(
+			line.dot(point - start) / length_squared,
+			0.0,
+			1.0
+		)
+
+		return start + line * t
+
+func _fire_dart() -> void:
+	var dart = Dart.new()
+	dart.texture = DART_TEXTURE
+	dart.scale = Vector2(2.0, 2.0)
+	dart.direction = charge_direction
+	dart.damage = damage
+	dart.angle_offset = deg_to_rad(dart_angle_offset_degrees) - PI / 2.0
+	get_parent().add_child(dart)
+	dart.global_position = global_position
+
 
 
 func _ready() -> void:
@@ -421,16 +437,6 @@ func _release_attack() -> void:
 			_damage_shape(shape, Transform2D(charge_direction.angle(), attack_origin), damage)
 			_show_impact(attack_origin, attack_radius)
 			recovery_time = 0.75
-
-
-func _fire_dart() -> void:
-	var dart = Dart.new()
-	dart.texture = DART_TEXTURE
-	dart.direction = charge_direction
-	dart.damage = damage
-	dart.angle_offset = deg_to_rad(dart_angle_offset_degrees)
-	get_parent().add_child(dart)
-	dart.global_position = global_position
 
 
 func _damage_charge(start: Vector2, end: Vector2) -> void:
