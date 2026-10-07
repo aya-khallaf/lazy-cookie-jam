@@ -641,7 +641,7 @@ func _update_king_camera() -> void:
 	var visibility_distance = max(king_camera_distance - 35.0, 0.0) if king_camera_frame.visible else king_camera_distance
 	king_camera_frame.visible = distance >= visibility_distance
 	king_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if king_camera_frame.visible else SubViewport.UPDATE_DISABLED
-	var state = \"Sleeping\" if Global.king_node.sleeping else \"Distracted\" if Global.king_node.distracted else \"Following\"
+	var state = \"Sleeping\" if Global.king_node.sleeping else \"Sleep Walking\" if Global.king_node.distracted else \"Following\"
 	king_camera_label.text = \"KING %d / %d - %s\" % [int(ceil(Global.king_health)), int(Global.king_max_health), state]
 	king_camera_label.modulate = Color(1.0, 0.4, 0.3) if Global.king_health < Global.king_max_health * 0.3 else Color.WHITE
 
@@ -723,7 +723,6 @@ bg_color = Color(0.18307453, 0.00033713185, 0.30978307, 1)
 bg_color = Color(0.7195479, 0.4348933, 1, 1)
 
 [node name="Player" type="CharacterBody2D" unique_id=1279900028]
-collision_layer = 2
 script = SubResource("GDScript_onrkg")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=318040889]

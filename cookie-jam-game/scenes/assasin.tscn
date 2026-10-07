@@ -72,9 +72,11 @@ bg_color = Color(0.32559684, 5.113892e-07, 6.016344e-08, 1)
 bg_color = Color(0.9388852, 0.00063573505, 0.0003488517, 1)
 
 [node name="assasin" type="CharacterBody2D" unique_id=59076921]
-collision_layer = 2
-collision_mask = 2
+collision_mask = 3
 script = ExtResource("1_b2qns")
+base_speed = 175.0
+base_damage = 15.0
+base_health = 130.0
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1039831818]
 sprite_frames = SubResource("SpriteFrames_b2qns")
@@ -86,8 +88,6 @@ shape = SubResource("CircleShape2D_sx1bq")
 
 [node name="Area2D" type="Area2D" parent="." unique_id=907482289]
 position = Vector2(0, -13)
-collision_layer = 3
-collision_mask = 3
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=56958685]
 position = Vector2(1, 66)
