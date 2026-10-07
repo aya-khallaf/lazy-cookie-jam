@@ -554,6 +554,8 @@ func _die() -> void:
 		_drop_xp()
 		if randf() < clamp(heart_drop_chance + Global.heart_drop_chance_bonus, 0.0, 0.35):
 			_drop_heart()
+	Global.player_health += 5
+	Global.king_health += 5
 	queue_free()
 
 
