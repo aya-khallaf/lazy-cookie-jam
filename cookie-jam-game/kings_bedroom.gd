@@ -3,6 +3,10 @@ extends Node2D
 const ASSASSIN_SCENE = preload("res://scenes/assasin.tscn")
 const KEY_TEXTURE = preload("res://assets/key.svg")
 
+@export var wave_size_step_time = 150.0
+@export var maximum_wave_size = 4
+@export var enemy_cap_step = 5
+@export var enemy_cap_step_time = 75.0
 @export var minimum_spawn_distance = 650.0
 @export var maximum_spawn_distance = 1100.0
 @export var max_spawn_attempts = 50
@@ -10,11 +14,7 @@ const KEY_TEXTURE = preload("res://assets/key.svg")
 @export var minimum_spawn_interval = 0.55
 @export var spawn_interval_step = 0.07
 @export var spawn_interval_step_time = 45.0
-@export var wave_size_step_time = 90.0
-@export var maximum_wave_size = 5
 @export var starting_enemy_cap = 35
-@export var enemy_cap_step = 8
-@export var enemy_cap_step_time = 45.0
 @export var maximum_enemy_cap = 160
 @export var pressure_cycle_duration = 50.0
 @export var breather_duration = 8.0
