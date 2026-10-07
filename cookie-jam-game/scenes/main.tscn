@@ -382,6 +382,7 @@
 [ext_resource type="Texture2D" uid="uid://md7bjrgckju6" path="res://assets/animation/download - 2026-10-05T173125.624.png" id="380_d18in"]
 [ext_resource type="Texture2D" uid="uid://0s0tt08l2ajh" path="res://assets/animation/download - 2026-10-05T173128.217.png" id="381_jgbu0"]
 [ext_resource type="Texture2D" uid="uid://oxt74fua5aqo" path="res://assets/animation/download - 2026-10-05T173131.167.png" id="382_5jkgy"]
+[ext_resource type="AudioStream" uid="uid://f1utkegt5nma" path="res://mirostar-game-gaming-video-game-music-560319.mp3" id="383_7b17j"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_0wfyh"]
 texture = ExtResource("1_o5qli")
@@ -1541,7 +1542,7 @@ animations = [{
 "duration": 1.0,
 "texture": ExtResource("382_5jkgy")
 }],
-"loop": false,
+"loop": 0,
 "name": &"default",
 "speed": 8.0
 }]
@@ -1627,5 +1628,12 @@ scale = Vector2(1.4250001, 1.4533334)
 sprite_frames = SubResource("SpriteFrames_xb35a")
 frame = 375
 frame_progress = 1.0
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="CanvasLayer/AnimatedSprite2D" unique_id=781642851]
+stream = ExtResource("383_7b17j")
+volume_db = -24.207
+autoplay = true
+
+[node name="Sound Effects" type="AudioStreamPlayer" parent="CanvasLayer/AnimatedSprite2D" unique_id=552816419]
 
 [connection signal="animation_finished" from="CanvasLayer/AnimatedSprite2D" to="." method="_on_animated_sprite_2d_animation_finished"]
