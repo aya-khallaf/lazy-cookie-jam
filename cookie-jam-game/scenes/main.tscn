@@ -393,24 +393,6 @@ texture_region_size = Vector2i(128, 128)
 tile_size = Vector2i(128, 128)
 sources/0 = SubResource("TileSetAtlasSource_0wfyh")
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_83wnk"]
-size = Vector2(1043, 126)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_85g3d"]
-size = Vector2(72.5625, 475.75)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_o6xl0"]
-size = Vector2(96.5625, 496.875)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_tipki"]
-size = Vector2(233.125, 231)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_tefeu"]
-size = Vector2(489.125, 231)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_choun"]
-size = Vector2(349.85712, 231)
-
 [sub_resource type="SpriteFrames" id="SpriteFrames_xb35a"]
 animations = [{
 "frames": [{
@@ -1542,7 +1524,7 @@ animations = [{
 "duration": 1.0,
 "texture": ExtResource("382_5jkgy")
 }],
-"loop": 0,
+"loop": false,
 "name": &"default",
 "speed": 8.0
 }]
@@ -1570,45 +1552,9 @@ position = Vector2(483, 241)
 [node name="KingsBedroom" parent="." unique_id=228653026 instance=ExtResource("6_tefeu")]
 z_index = -100
 position = Vector2(-4717.9995, -4199.9995)
-scale = Vector2(7, 7)
 
 [node name="CharacterBody2D" parent="." unique_id=80194360 instance=ExtResource("6_o6xl0")]
 position = Vector2(-4463, -4066)
-
-[node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=529932970]
-position = Vector2(-4492, -4061)
-collision_layer = 7
-collision_mask = 7
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D" unique_id=2137014292]
-position = Vector2(3681.0002, -411)
-scale = Vector2(7, 7)
-shape = SubResource("RectangleShape2D_83wnk")
-
-[node name="CollisionShape2D5" type="CollisionShape2D" parent="StaticBody2D" unique_id=1351778510]
-position = Vector2(7542, 1806.9999)
-scale = Vector2(7, 7)
-shape = SubResource("RectangleShape2D_85g3d")
-
-[node name="CollisionShape2D4" type="CollisionShape2D" parent="StaticBody2D" unique_id=499992426]
-position = Vector2(-386.9995, 1714.9999)
-scale = Vector2(7, 7)
-shape = SubResource("RectangleShape2D_o6xl0")
-
-[node name="CollisionShape2D3" type="CollisionShape2D" parent="StaticBody2D" unique_id=89713623]
-position = Vector2(6422, 4325)
-scale = Vector2(7, 7)
-shape = SubResource("RectangleShape2D_tipki")
-
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="StaticBody2D" unique_id=1584844551]
-position = Vector2(1666.0001, 4321.0005)
-scale = Vector2(7, 7)
-shape = SubResource("RectangleShape2D_tefeu")
-
-[node name="CollisionShape2D6" type="CollisionShape2D" parent="StaticBody2D" unique_id=1049743797]
-position = Vector2(4427.5, 5921.001)
-scale = Vector2(7, 7)
-shape = SubResource("RectangleShape2D_choun")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1361415448]
 process_mode = 3
