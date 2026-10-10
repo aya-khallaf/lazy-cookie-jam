@@ -9,6 +9,7 @@
 [ext_resource type="Texture2D" uid="uid://lgjvmk6jr7kw" path="res://FieldsTileset.png" id="7_geyta"]
 [ext_resource type="Texture2D" uid="uid://bw44ssokitlm4" path="res://FieldsTilesetTest.png" id="8_nwgkl"]
 [ext_resource type="Texture2D" uid="uid://6k4x6rg18sye" path="res://walls_floor.png" id="9_27i0w"]
+[ext_resource type="AudioStream" uid="uid://dm63qsuwqm70v" path="res://StageTwoBackgroundMusic.mp3" id="10_ugv1h"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_piesd"]
 texture = ExtResource("3_6cvvo")
@@ -1896,3 +1897,7 @@ shape = SubResource("RectangleShape2D_ttjhl")
 [node name="CollisionShape2D2" type="CollisionShape2D" parent="StaticBody2D" unique_id=267910211]
 position = Vector2(1702, 214.125)
 shape = SubResource("RectangleShape2D_geyta")
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="." unique_id=1704147911]
+stream = ExtResource("10_ugv1h")
+autoplay = true

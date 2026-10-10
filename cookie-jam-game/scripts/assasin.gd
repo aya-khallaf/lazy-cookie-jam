@@ -5,6 +5,7 @@ const HEART_SCRIPT = preload("res://scripts/heart.gd")
 const DART_TEXTURE = preload("res://assets/dart.svg")
 const ANIMATIONS = ["goblin assasin", "stabby", "ork", "spear goblin", "dart goblin", "grunkk"]
 const ENEMY_NAMES = ["Goblin Assassin", "Stabby", "Ork", "Spear Goblin", "Dart Goblin", "Grunkk"]
+const HIT_SOUND = preload("res://assets/Impact.mp3")
 
 @export var enemy_level = 1
 @export var base_speed = 125.0
@@ -498,6 +499,8 @@ func _update_boss_phase(delta: float) -> void:
 func take_damage(amount: float, source_position: Vector2, extra_knockback: float = 1.0, critical: bool = false) -> void:
 	if dead or health <= 0.0 or amount <= 0.0:
 		return
+	play_hit_sound()
+
 	health = max(health - amount, 0.0)
 	flash_timer = 0.1
 	_show_damage_number(amount, critical)
@@ -516,7 +519,7 @@ func take_damage(amount: float, source_position: Vector2, extra_knockback: float
 		if knockback:
 			$knockback_timer.start()
 	if health <= 0.0:
-		_die()
+		_die()	
 
 
 func _show_damage_number(amount: float, critical: bool) -> void:
@@ -571,6 +574,14 @@ func _drop_heart() -> void:
 	get_parent().add_child(heart)
 	heart.global_position = global_position
 
+func play_hit_sound() -> void:
+	var sound = AudioStreamPlayer.new()
+	sound.stream = HIT_SOUND
+	sound.volume_db = -15.0
+	sound.process_mode = Node.PROCESS_MODE_ALWAYS
+	get_tree().root.add_child(sound)
+	sound.finished.connect(sound.queue_free)
+	sound.play()
 
 func _on_area_2d_body_entered(body: Node2D) -> void:
 	if body == Global.player_node:

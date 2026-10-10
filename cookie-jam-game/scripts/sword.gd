@@ -114,6 +114,7 @@ func _update_attack(delta: float) -> void:
 
 
 func try_hit_enemy(enemy: Node2D) -> void:
+	
 	if !attacking or !Global.gameplay_started or !is_instance_valid(enemy) or enemy.is_queued_for_deletion():
 		return
 	if !enemy.is_in_group("enemy") or !enemy.has_method("take_damage"):

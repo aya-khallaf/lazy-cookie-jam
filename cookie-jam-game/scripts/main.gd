@@ -58,6 +58,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		return
 	var key = event.keycode if event.keycode != 0 else event.physical_keycode
 	if !intro_finished and (key == KEY_ENTER or key == KEY_SPACE):
+		$CanvasLayer/AnimatedSprite2D/AnimationBackgroundMusic.stop()
 		$CanvasLayer/AnimatedSprite2D.stop()
 		$CanvasLayer.visible = false
 		_start_gameplay()
@@ -302,11 +303,13 @@ func _reload_run() -> void:
 
 
 func _on_animated_sprite_2d_animation_finished() -> void:
+	$CanvasLayer/AnimatedSprite2D/AnimationBackgroundMusic.stop()
+
 	if dead or completed or intro_finished:
 		return
+		
 	$CanvasLayer.visible = false
 	_start_gameplay()
-
 
 #func _on_animated_sprite_2d_frame_changed() -> void:
 	#if $CanvasLayer/AnimatedSprite2D.frame == 5:

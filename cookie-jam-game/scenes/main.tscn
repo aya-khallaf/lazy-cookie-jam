@@ -383,7 +383,6 @@
 [ext_resource type="Texture2D" uid="uid://0s0tt08l2ajh" path="res://assets/animation/download - 2026-10-05T173128.217.png" id="381_jgbu0"]
 [ext_resource type="Texture2D" uid="uid://oxt74fua5aqo" path="res://assets/animation/download - 2026-10-05T173131.167.png" id="382_5jkgy"]
 [ext_resource type="AudioStream" uid="uid://f1utkegt5nma" path="res://mirostar-game-gaming-video-game-music-560319.mp3" id="383_7b17j"]
-[ext_resource type="AudioStream" uid="uid://rd5s1ggfvbo8" path="res://thud.mp3" id="385_7sv8m"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_0wfyh"]
 texture = ExtResource("1_o5qli")
@@ -1549,6 +1548,8 @@ position = Vector2(112, 287)
 
 [node name="king" parent="." unique_id=1099200405 instance=ExtResource("3_sugp2")]
 position = Vector2(483, 241)
+speed = 200.0
+wander_speed = 150.0
 
 [node name="KingsBedroom" parent="." unique_id=228653026 instance=ExtResource("6_tefeu")]
 z_index = -100
@@ -1580,10 +1581,6 @@ frame_progress = 1.0
 stream = ExtResource("383_7b17j")
 volume_db = -24.0
 autoplay = true
-
-[node name="Thud" type="AudioStreamPlayer" parent="CanvasLayer/AnimatedSprite2D" unique_id=552816419]
-stream = ExtResource("385_7sv8m")
-volume_db = 24.0
 
 [connection signal="animation_finished" from="CanvasLayer/AnimatedSprite2D" to="." method="_on_animated_sprite_2d_animation_finished"]
 [connection signal="frame_changed" from="CanvasLayer/AnimatedSprite2D" to="." method="_on_animated_sprite_2d_frame_changed"]

@@ -5,6 +5,8 @@ const HEART_SCRIPT = preload("res://scripts/heart.gd")
 const DART_TEXTURE = preload("res://assets/dart.svg")
 const ANIMATIONS = ["assasin", "stabber", "sword", "spearman", "ranger"]
 const ENEMY_NAMES = ["Arcane Assassin", "Headsman", "Assasin Knight", "Changer", "Marksman"]
+const HIT_SOUND = preload("res://assets/Impact.mp3")
+
 
 @export var enemy_level = 1
 @export var base_speed = 125.0
@@ -462,6 +464,7 @@ func _show_impact(point: Vector2, radius: float) -> void:
 
 
 func take_damage(amount: float, source_position: Vector2, extra_knockback: float = 1.0, critical: bool = false) -> void:
+	play_hit_sound()
 	if dead or health <= 0.0 or amount <= 0.0:
 		return
 	health = max(health - amount, 0.0)
@@ -482,6 +485,15 @@ func take_damage(amount: float, source_position: Vector2, extra_knockback: float
 		$knockback_timer.start()
 	if health <= 0.0:
 		_die()
+
+func play_hit_sound() -> void:
+	var sound = AudioStreamPlayer.new()
+	sound.stream = HIT_SOUND
+	sound.volume_db = -15.0
+	sound.process_mode = Node.PROCESS_MODE_ALWAYS
+	get_tree().root.add_child(sound)
+	sound.finished.connect(sound.queue_free)
+	sound.play()
 
 
 func _show_damage_number(amount: float, critical: bool) -> void:

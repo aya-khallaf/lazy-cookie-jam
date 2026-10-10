@@ -19,7 +19,7 @@ animations = [{
 "duration": 1.0,
 "texture": ExtResource("2_6iuwv")
 }],
-"loop": true,
+"loop": 1,
 "name": &"awake idle",
 "speed": 5.0
 }, {
@@ -36,7 +36,7 @@ animations = [{
 "duration": 1.0,
 "texture": ExtResource("4_7t663")
 }],
-"loop": true,
+"loop": 1,
 "name": &"awake walk",
 "speed": 5.0
 }, {
@@ -56,7 +56,7 @@ animations = [{
 "duration": 1.0,
 "texture": ExtResource("7_7qhre")
 }],
-"loop": true,
+"loop": 1,
 "name": &"sleep idle",
 "speed": 5.0
 }, {
@@ -73,7 +73,7 @@ animations = [{
 "duration": 1.0,
 "texture": ExtResource("12_ovqfi")
 }],
-"loop": true,
+"loop": 1,
 "name": &"sleep walk",
 "speed": 3.0
 }]
