@@ -7,6 +7,7 @@ const BASE_KING_MAX_HEALTH = 150.0
 const PLAYER_DAMAGE_SOUND = preload("res://assets/grunt3.mp3")
 const KING_DAMAGE_SOUND = preload("res://assets/grunt2.mp3")
 const HEART_HEAL_SOUND = preload("res://assets/heal1.mp3")
+const CLICK_SOUND = preload("res://assets/Click.mp3")
 
 var player_node = null
 var king_node = null
@@ -138,6 +139,15 @@ func play_king_damage_sound() -> void:
 func play_heart_heal_sound() -> void:
 	var sound = AudioStreamPlayer.new()
 	sound.stream = HEART_HEAL_SOUND
+	sound.process_mode = Node.PROCESS_MODE_ALWAYS
+	get_tree().root.add_child(sound)
+	sound.finished.connect(sound.queue_free)
+	sound.play()
+	
+func play_click_sound() -> void:
+	var sound = AudioStreamPlayer.new()
+	sound.stream = CLICK_SOUND
+	sound.volume_db = -10.0
 	sound.process_mode = Node.PROCESS_MODE_ALWAYS
 	get_tree().root.add_child(sound)
 	sound.finished.connect(sound.queue_free)
@@ -446,6 +456,7 @@ func get_upgrade_text(upgrade_id: String) -> String:
 
 
 func apply_upgrade(upgrade_id: String) -> void:
+	play_click_sound()
 	var previous_damage = weapon_damage
 	var previous_fireball_damage = fireball_damage
 	var previous_orbit_damage = orbit_sword_damage

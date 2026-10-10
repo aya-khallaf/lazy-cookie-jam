@@ -32,7 +32,6 @@ func _ready() -> void:
 	var intro = $CanvasLayer/AnimatedSprite2D
 	if !intro.animation_finished.is_connected(_on_animated_sprite_2d_animation_finished):
 		intro.animation_finished.connect(_on_animated_sprite_2d_animation_finished)
-	if Global.respawning:
 		Global.respawning = false
 		$CanvasLayer.visible = false
 		call_deferred("_start_gameplay")
