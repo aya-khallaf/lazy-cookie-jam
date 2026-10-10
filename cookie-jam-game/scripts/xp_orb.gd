@@ -1,6 +1,7 @@
 extends Node2D
 
 const ORB_TEXTURE = preload("res://assets/orb.svg")
+const PICKUP_SOUND = preload("res://assets/xp_pickup.mp3")
 
 @export var blue_orb_chance = 0.015
 
@@ -92,15 +93,27 @@ func _player_touches_pickup(player_position: Vector2) -> bool:
 				return true
 	return false
 
+func play_pickup_sound() -> void:
+	var sound = AudioStreamPlayer.new()
+	sound.stream = PICKUP_SOUND
+	sound.process_mode = Node.PROCESS_MODE_ALWAYS
+	get_tree().root.add_child(sound)
+	sound.finished.connect(sound.queue_free)
+	sound.play()
+
+
+
 
 func collect() -> void:
 	if collected or !Global.gameplay_started or Global.player_health <= 0.0 or Global.king_health <= 0.0:
 		return
 	collected = true
 	remove_from_group("xp_orb")
+	play_pickup_sound()
 	if is_blue:
 		_collect_all_xp()
 		return
+	play_pickup_sound()
 	Global.add_xp(xp_value)
 	queue_free()
 

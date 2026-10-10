@@ -244,3 +244,9 @@ func _on_animated_sprite_2d_animation_finished() -> void:
 		return
 	$CanvasLayer.visible = false
 	_start_gameplay()
+
+
+#func _on_animated_sprite_2d_frame_changed() -> void:
+	#if $CanvasLayer/AnimatedSprite2D.frame == 5:
+		#$CanvasLayer/AnimatedSprite2D/Thud.play()
+#idk how to add sound effects to frames...

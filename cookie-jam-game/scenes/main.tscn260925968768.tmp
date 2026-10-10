@@ -1576,7 +1576,7 @@ sprite_frames = SubResource("SpriteFrames_xb35a")
 frame = 375
 frame_progress = 1.0
 
-[node name="AnimationBackgroundMusic" type="AudioStreamPlayer" parent="CanvasLayer/AnimatedSprite2D" unique_id=781642851]
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="CanvasLayer/AnimatedSprite2D" unique_id=781642851]
 stream = ExtResource("383_7b17j")
 volume_db = -24.0
 autoplay = true
