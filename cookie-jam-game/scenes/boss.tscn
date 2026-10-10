@@ -1,0 +1,103 @@
+[gd_scene format=3 uid="uid://bsihu2o6k6b4h"]
+
+[ext_resource type="Script" uid="uid://3irrxuvga8xl" path="res://scripts/boss.gd" id="1_2cdgk"]
+[ext_resource type="Texture2D" uid="uid://bmohlxs2n1l54" path="res://assets/Untitled 12.png" id="4_2cdgk"]
+[ext_resource type="Texture2D" uid="uid://b6nomkh8vnn2e" path="res://assets/goblin 5.svg" id="5_0onds"]
+[ext_resource type="Texture2D" uid="uid://cueatbad1au0u" path="res://assets/goblin 6.svg" id="6_lfs1x"]
+[ext_resource type="Texture2D" uid="uid://c54h8ueckd6v5" path="res://assets/goblin 2.svg" id="7_8eiau"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_b2qns"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("4_2cdgk")
+}],
+"loop": true,
+"name": &"grunkk",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("5_0onds")
+}],
+"loop": true,
+"name": &"ork",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("6_lfs1x")
+}],
+"loop": true,
+"name": &"spear goblin",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("7_8eiau")
+}],
+"loop": true,
+"name": &"stabby",
+"speed": 5.0
+}]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_sx1bq"]
+radius = 47.010635
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_b2qns"]
+radius = 74.00676
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_148uq"]
+bg_color = Color(0.32559684, 5.113892e-07, 6.016344e-08, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_llryn"]
+bg_color = Color(0.9388852, 0.00063573505, 0.0003488517, 1)
+
+[node name="assasin" type="CharacterBody2D" unique_id=59076921]
+z_index = 4096
+collision_mask = 3
+script = ExtResource("1_2cdgk")
+base_speed = 300.0
+base_damage = 50.0
+base_health = 5000.0
+knockback_speed = 400.0
+knockback_deceleration = 400.0
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1039831818]
+scale = Vector2(0.2, 0.2)
+sprite_frames = SubResource("SpriteFrames_b2qns")
+animation = &"grunkk"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1372308340]
+position = Vector2(-12, 189)
+shape = SubResource("CircleShape2D_sx1bq")
+
+[node name="Area2D" type="Area2D" parent="." unique_id=907482289]
+position = Vector2(0, -13)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=56958685]
+position = Vector2(-13, 202)
+shape = SubResource("CircleShape2D_b2qns")
+
+[node name="hit_timer" type="Timer" parent="." unique_id=1857472569]
+one_shot = true
+
+[node name="knockback_timer" type="Timer" parent="." unique_id=2018098592]
+wait_time = 0.1
+one_shot = true
+
+[node name="ProgressBar" type="ProgressBar" parent="." unique_id=98536210]
+offset_left = -74.0
+offset_top = -264.0
+offset_right = 50.0
+offset_bottom = -250.0
+theme_override_styles/background = SubResource("StyleBoxFlat_148uq")
+theme_override_styles/fill = SubResource("StyleBoxFlat_llryn")
+show_percentage = false
+
+[connection signal="area_entered" from="Area2D" to="." method="_on_area_2d_area_entered"]
+[connection signal="area_exited" from="Area2D" to="." method="_on_area_2d_area_exited"]
+[connection signal="body_entered" from="Area2D" to="." method="_on_area_2d_body_entered"]
+[connection signal="body_exited" from="Area2D" to="." method="_on_area_2d_body_exited"]
+[connection signal="timeout" from="hit_timer" to="." method="_on_hit_timer_timeout"]
+[connection signal="timeout" from="knockback_timer" to="." method="_on_knockback_timer_timeout"]

@@ -12,6 +12,7 @@
 [ext_resource type="Texture2D" uid="uid://6k4x6rg18sye" path="res://walls_floor.png" id="10_oce0n"]
 [ext_resource type="Texture2D" uid="uid://crtm6gsxovugq" path="res://assets/costume1 (4).svg" id="11_pq5xn"]
 [ext_resource type="Texture2D" uid="uid://1ukj0cx011am" path="res://assets/costume1 (3).png" id="12_pq5xn"]
+[ext_resource type="PackedScene" uid="uid://bsihu2o6k6b4h" path="res://scenes/boss.tscn" id="13_w1um0"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_jmdwh"]
 texture = ExtResource("2_som3s")
@@ -1889,10 +1890,10 @@ radius = 144.35115
 size = Vector2(17.57114, 76.92857)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_w1um0"]
-size = Vector2(164.42871, 161.28583)
+size = Vector2(92.857544, 80.642914)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_qq6kc"]
-size = Vector2(550, 527)
+size = Vector2(192, 525)
 
 [node name="KingsBedroom" type="Node2D" unique_id=228653026]
 script = ExtResource("1_oce0n")
@@ -2005,7 +2006,7 @@ shape = SubResource("RectangleShape2D_b28ko")
 scale = Vector2(7, 7)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="door 3" unique_id=979249576]
-position = Vector2(2547.4995, -31.499977)
+position = Vector2(2441.2856, 9.749995)
 scale = Vector2(0.9999993, 0.9999993)
 shape = SubResource("RectangleShape2D_w1um0")
 
@@ -2020,8 +2021,8 @@ scale = Vector2(3.421657, 3.4399223)
 texture = ExtResource("11_pq5xn")
 
 [node name="Costume1(3)" type="Sprite2D" parent="." unique_id=1036035399]
-position = Vector2(17790, -181.00006)
-scale = Vector2(2.7456906, 3.3701656)
+position = Vector2(17065, -1.5258789e-05)
+scale = Vector2(1.5948302, 2.0552487)
 texture = ExtResource("12_pq5xn")
 
 [node name="Costume1(3)2" type="Sprite2D" parent="." unique_id=1541208426]
@@ -2032,7 +2033,10 @@ texture = ExtResource("12_pq5xn")
 [node name="Area2D" type="Area2D" parent="." unique_id=840526666]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=1818899151]
-position = Vector2(17869, 273)
+position = Vector2(17089, 506.5)
 shape = SubResource("RectangleShape2D_qq6kc")
+
+[node name="assasin" parent="." unique_id=59076921 instance=ExtResource("13_w1um0")]
+position = Vector2(2040, 74)
 
 [connection signal="body_entered" from="Area2D" to="." method="_on_area_2d_body_entered"]
