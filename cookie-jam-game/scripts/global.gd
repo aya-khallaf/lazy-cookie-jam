@@ -2,8 +2,8 @@ extends Node
 
 signal level_up_requested
 
-const BASE_PLAYER_MAX_HEALTH = 100.0
-const BASE_KING_MAX_HEALTH = 100.0
+const BASE_PLAYER_MAX_HEALTH = 200.0
+const BASE_KING_MAX_HEALTH = 150.0
 
 var player_node = null
 var king_node = null
@@ -84,6 +84,7 @@ var lightning_range = 300.0
 var player_hit_cooldown = 0.0
 var king_hit_cooldown = 0.0
 
+var main = null
 
 func _process(delta: float) -> void:
 	if !gameplay_started:

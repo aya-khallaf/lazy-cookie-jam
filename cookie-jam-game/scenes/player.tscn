@@ -166,6 +166,8 @@ func _process(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	$ProgressBar.max_value = Global.player_max_health
 	$ProgressBar.value = Global.player_health
+	if Global.player_health > Global.player_max_health:
+		Global.player_health = Global.player_max_health
 	if !Global.gameplay_started or Global.player_health <= 0.0:
 		velocity = Vector2.ZERO
 		return
@@ -175,8 +177,13 @@ func _physics_process(delta: float) -> void:
 	if was_dashing and dash_time_remaining <= 0.0:
 		velocity = velocity.limit_length(speed * Global.player_speed_multiplier)
 	player_flash_timer = max(player_flash_timer - delta, 0.0)
-	if Global.player_health < previous_health:
+
+	if Global.player_health > previous_health:
+		player_flash_timer = 0.0
+
+	elif Global.player_health < previous_health:
 		player_flash_timer = 0.16
+
 	previous_health = Global.player_health
 	var direction = get_input()
 	if dash_requested and dash_cooldown_remaining <= 0.0:
@@ -455,7 +462,7 @@ func _update_xp_hud() -> void:
 		if Global.king_node.sleeping:
 			state = \"SLEEPING\"
 		elif Global.king_node.distracted:
-			state = \"DISTRACTED\"
+			state = \"SLEEP WALKING\"
 	king_status_label.text = \"KING %d / %d  %s\" % [int(ceil(Global.king_health)), int(Global.king_max_health), state]
 	king_health_bar.max_value = Global.king_max_health
 	king_health_bar.value = Global.king_health

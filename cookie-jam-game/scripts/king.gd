@@ -5,7 +5,7 @@ extends CharacterBody2D
 @export var follow_distance = 45.0
 @export var wander_distance = 120.0
 @export var sleep_heal_per_second = 2.0
-@export var sleep_walk_heal_per_second = 0.25
+@export var sleep_walk_heal_per_second	 = 0.25
 
 var distracted = true
 var sleeping = false
@@ -40,6 +40,8 @@ func _exit_tree() -> void:
 func _physics_process(delta: float) -> void:
 	$ProgressBar.max_value = Global.king_max_health
 	$ProgressBar.value = Global.king_health
+	if Global.king_health > Global.king_max_health:
+		Global.king_health = Global.king_max_health
 	if !Global.gameplay_started or Global.king_health <= 0.0:
 		velocity = Vector2.ZERO
 		return
@@ -50,9 +52,12 @@ func _physics_process(delta: float) -> void:
 		ignored_player = Global.player_node
 	time_since_damage += delta
 	status_time += delta
-	if Global.king_health < previous_health:
+	if Global.king_health > previous_health:
+		flash_timer = 0.0
+	elif Global.king_health < previous_health:
 		flash_timer = 0.16
 		time_since_damage = 0.0
+
 	previous_health = Global.king_health
 	flash_timer = max(flash_timer - delta, 0.0)
 	animated_sprite_2d.modulate = Color(1.0, 0.35, 0.3) if flash_timer > 0.0 else original_modulate

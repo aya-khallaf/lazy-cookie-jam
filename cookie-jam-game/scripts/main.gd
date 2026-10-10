@@ -11,9 +11,11 @@ var restarting = false
 var completed = false
 var ending_story
 var replay_button
-
+const STAGE_2 = preload("uid://u0ohrqd0cakc")
 
 func _ready() -> void:
+	next_stage()
+	Global.main = self
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group("stage_end_controller")
 	for child in get_children():
@@ -38,7 +40,8 @@ func _ready() -> void:
 	$CanvasLayer.visible = true
 	intro.play("default")
 	var hint = Label.new()
-	hint.text = "ENTER / SPACE: SKIP INTRO"
+	hint.text = "ENTER or SPACE to skip cutscene"
+	hint.z_index = 101
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hint.add_theme_font_size_override("font_size", 16)
@@ -156,7 +159,7 @@ func _create_pause_screen() -> void:
 	resume_button.pressed.connect(_set_manual_pause.bind(false))
 	box.add_child(resume_button)
 	var restart_button = Button.new()
-	restart_button.text = "RESTART RUN"
+	restart_button.text = "RESTART"
 	restart_button.custom_minimum_size = Vector2(350.0, 50.0)
 	restart_button.pressed.connect(_respawn)
 	box.add_child(restart_button)
@@ -190,7 +193,56 @@ func _show_death_screen(title: String) -> void:
 	death_stats.text = "LEVEL %d\nKILLS: %d\nSURVIVED: %02d:%02d" % [Global.level, Global.kills, seconds / 60, seconds % 60]
 	death_screen.visible = true
 	get_tree().paused = true
+	
+func stage_3():
+	print("stage 3 test")
+	
+func _next_stage1() -> void:
+	Global.run_time = 0.0
+	Global.player_node.position = Vector2(112, 287)
+	Global.king_node.position = Vector2(483, 241)
+	Global.kills = 0
+	var old_map = get_node_or_null("KingsBedroom")
+	if is_instance_valid(old_map):
+		old_map.queue_free()
 
+	var new_tilemap = STAGE_2.instantiate()
+	new_tilemap.name = "StageTwoMap"
+	new_tilemap.z_index = -100
+	add_child(new_tilemap)
+
+	death_screen.visible = false
+	completed = false
+	manually_paused = false
+	intro_finished = true
+
+	Global.gameplay_started = true
+	get_tree().paused = false
+
+	get_tree().call_group("xp_hud", "show")
+	get_tree().call_group("enemy_spawner_controller", "start_spawning")
+	get_tree().call_group("king_camera_controller", "set_king_camera_allowed", true)
+		
+func next_stage() -> void:
+	Global.run_time = 0.0
+	Global.player_node.position = Vector2(112, 287)
+	Global.king_node.position = Vector2(483, 241)
+	Global.kills = 0
+	var old_map = get_node_or_null("KingsBedroom")
+	if is_instance_valid(old_map):
+		old_map.queue_free()
+
+	var new_tilemap = STAGE_2.instantiate()
+	new_tilemap.name = "StageTwoMap"
+	new_tilemap.z_index = -100
+	add_child(new_tilemap)
+
+	Global.gameplay_started = true
+	get_tree().paused = false
+
+	get_tree().call_group("xp_hud", "show")
+	get_tree().call_group("enemy_spawner_controller", "start_spawning")
+	get_tree().call_group("king_camera_controller", "set_king_camera_allowed", true)
 
 func complete_stage_one() -> void:
 	if completed or dead or restarting or !Global.gameplay_started or Global.player_health <= 0.0 or Global.king_health <= 0.0:
@@ -211,7 +263,17 @@ func complete_stage_one() -> void:
 	ending_story.visible = true
 	var seconds = int(Global.run_time)
 	death_stats.text = "TIME %02d:%02d    KILLS %d    LEVEL %d" % [seconds / 60, seconds % 60, Global.kills, Global.level]
-	replay_button.text = "REPLAY STAGE ONE"
+	var respawn_callable = Callable(self, "_respawn")
+	var next_stage_callable = Callable(self, "_next_stage1")
+
+	if replay_button.pressed.is_connected(respawn_callable):
+		replay_button.pressed.disconnect(respawn_callable)
+
+	replay_button.text = "EXIT CASTLE - STAGE 2"
+
+	if !replay_button.pressed.is_connected(next_stage_callable):
+		replay_button.pressed.connect(next_stage_callable)
+
 	death_screen.visible = true
 	get_tree().paused = true
 

@@ -1,61 +1,52 @@
-[gd_scene format=3 uid="uid://dw15ig8y03f6"]
+[gd_scene format=3 uid="uid://bae1omjm4tdg6"]
 
-[ext_resource type="Script" uid="uid://bmq8tvibr17ym" path="res://scripts/assasin.gd" id="1_b2qns"]
-[ext_resource type="Texture2D" uid="uid://yxh0i7qi50dv" path="res://assets/goblin .svg" id="2_b2qns"]
-[ext_resource type="Texture2D" uid="uid://dwbb2jqurcxem" path="res://assets/goblin 3.svg" id="2_vw4pi"]
-[ext_resource type="Texture2D" uid="uid://bqtjg1kuj3hya" path="res://assets/goblin 7.svg" id="4_idolf"]
-[ext_resource type="Texture2D" uid="uid://b6nomkh8vnn2e" path="res://assets/goblin 5.svg" id="5_pq0hl"]
-[ext_resource type="Texture2D" uid="uid://cueatbad1au0u" path="res://assets/goblin 6.svg" id="6_kflnw"]
-[ext_resource type="Texture2D" uid="uid://c54h8ueckd6v5" path="res://assets/goblin 2.svg" id="7_hobdh"]
+[ext_resource type="Script" uid="uid://creblxhl2wqho" path="res://scripts/assasin2.gd" id="1_3i3yj"]
+[ext_resource type="Texture2D" uid="uid://d3mtd7vi80it3" path="res://assets/Untitled 10.png" id="2_idsyi"]
+[ext_resource type="Texture2D" uid="uid://teljs117upqa" path="res://assets/Untitled 7.png" id="3_3i3yj"]
+[ext_resource type="Texture2D" uid="uid://t6lh5u4vrsja" path="res://assets/Untitled 8.png" id="4_bkfws"]
+[ext_resource type="Texture2D" uid="uid://ddaa7s53qwl8j" path="res://assets/Untitled 6.png" id="5_d6ojp"]
+[ext_resource type="Texture2D" uid="uid://blxu3lmwx8xw8" path="res://assets/Untitled 11.png" id="6_ul7nq"]
 
-[sub_resource type="SpriteFrames" id="SpriteFrames_b2qns"]
+[sub_resource type="SpriteFrames" id="SpriteFrames_5lrm7"]
 animations = [{
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("2_vw4pi")
+"texture": ExtResource("2_idsyi")
 }],
 "loop": true,
-"name": &"dart goblin",
+"name": &"assasin",
 "speed": 5.0
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("2_b2qns")
+"texture": ExtResource("3_3i3yj")
 }],
 "loop": true,
-"name": &"goblin assasin",
+"name": &"ranger",
 "speed": 5.0
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("4_idolf")
+"texture": ExtResource("4_bkfws")
 }],
 "loop": true,
-"name": &"grunkk",
+"name": &"spearman",
 "speed": 5.0
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("5_pq0hl")
+"texture": ExtResource("5_d6ojp")
 }],
 "loop": true,
-"name": &"ork",
+"name": &"stabber",
 "speed": 5.0
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("6_kflnw")
+"texture": ExtResource("6_ul7nq")
 }],
 "loop": true,
-"name": &"spear goblin",
-"speed": 5.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": ExtResource("7_hobdh")
-}],
-"loop": true,
-"name": &"stabby",
+"name": &"sword",
 "speed": 5.0
 }]
 
@@ -73,13 +64,21 @@ bg_color = Color(0.9388852, 0.00063573505, 0.0003488517, 1)
 
 [node name="assasin" type="CharacterBody2D" unique_id=59076921]
 collision_mask = 3
-script = ExtResource("1_b2qns")
-base_speed = 150.0
-base_damage = 15.0
+script = ExtResource("1_3i3yj")
+base_speed = 200.0
+base_damage = 50.0
+base_health = 200.0
+health_multiplier_per_level = 1.05
+damage_multiplier_per_level = 1.7
+speed_multiplier_per_level = 1.05
+xp_multiplier_per_level = 1.3
+maximum_speed = 250.0
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1039831818]
-sprite_frames = SubResource("SpriteFrames_b2qns")
-animation = &"stabby"
+position = Vector2(-4, -30.000004)
+scale = Vector2(0.11, 0.11)
+sprite_frames = SubResource("SpriteFrames_5lrm7")
+animation = &"spearman"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1372308340]
 position = Vector2(0, 53)
@@ -100,10 +99,10 @@ wait_time = 0.1
 one_shot = true
 
 [node name="ProgressBar" type="ProgressBar" parent="." unique_id=98536210]
-offset_left = -61.0
-offset_top = -119.0
-offset_right = 63.0
-offset_bottom = -105.0
+offset_left = -62.0
+offset_top = -156.0
+offset_right = 62.0
+offset_bottom = -142.0
 theme_override_styles/background = SubResource("StyleBoxFlat_148uq")
 theme_override_styles/fill = SubResource("StyleBoxFlat_llryn")
 show_percentage = false
