@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://cwnhrdomvs3yl" path="res://tiles and items.png" id="1_ltwxd"]
 [ext_resource type="Texture2D" uid="uid://chpor2pmpppoy" path="res://wardrobes_BR.png" id="2_83wnk"]
 [ext_resource type="Texture2D" uid="uid://c1x1n8ncgn6cx" path="res://beds_BR.png" id="3_hacl0"]
+[ext_resource type="AudioStream" uid="uid://dgrxu4vfvj4he" path="res://StageOneBackgroundMusic.mp3" id="5_hacl0"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_gklin"]
 texture = ExtResource("1_ltwxd")
@@ -613,3 +614,8 @@ shape = SubResource("RectangleShape2D_afp7y")
 position = Vector2(4427.5, 5921.001)
 scale = Vector2(7, 7)
 shape = SubResource("RectangleShape2D_1hn4y")
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="." unique_id=2072211804]
+stream = ExtResource("5_hacl0")
+volume_db = -8.069
+autoplay = true
