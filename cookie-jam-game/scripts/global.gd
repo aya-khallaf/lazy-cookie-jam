@@ -5,6 +5,7 @@ signal level_up_requested
 const BASE_PLAYER_MAX_HEALTH = 200.0
 const BASE_KING_MAX_HEALTH = 150.0
 const PLAYER_DAMAGE_SOUND = preload("res://assets/grunt3.mp3")
+const KING_DAMAGE_SOUND = preload("res://assets/grunt2.mp3")
 const HEART_HEAL_SOUND = preload("res://assets/heal1.mp3")
 
 var player_node = null
@@ -125,10 +126,18 @@ func play_player_damage_sound() -> void:
 	sound.finished.connect(sound.queue_free)
 	sound.play()
 	
+func play_king_damage_sound() -> void:
+	var sound = AudioStreamPlayer.new()
+	sound.stream = KING_DAMAGE_SOUND
+	sound.volume_db = -10.0
+	sound.process_mode = Node.PROCESS_MODE_ALWAYS
+	get_tree().root.add_child(sound)
+	sound.finished.connect(sound.queue_free)
+	sound.play()
+	
 func play_heart_heal_sound() -> void:
 	var sound = AudioStreamPlayer.new()
 	sound.stream = HEART_HEAL_SOUND
-	sound.volume_db = -10.0
 	sound.process_mode = Node.PROCESS_MODE_ALWAYS
 	get_tree().root.add_child(sound)
 	sound.finished.connect(sound.queue_free)
@@ -137,6 +146,7 @@ func play_heart_heal_sound() -> void:
 func damage_king(amount: float) -> bool:
 	if !gameplay_started or king_health <= 0.0 or amount <= 0.0 or king_hit_cooldown > 0.0:
 		return false
+	play_king_damage_sound()
 	king_health = max(king_health - amount * king_damage_taken_multiplier, 0.0)
 	king_hit_cooldown = 0.35
 	if is_instance_valid(king_node) and king_node.has_method("wake_up"):
